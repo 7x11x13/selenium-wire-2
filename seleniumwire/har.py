@@ -2,6 +2,7 @@
 
 This code has been taken from the har_dump.py addon in the mitmproxy project.
 """
+
 import base64
 import json
 from datetime import datetime, timezone
