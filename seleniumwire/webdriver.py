@@ -8,7 +8,7 @@ from selenium.webdriver import Firefox as _Firefox
 from selenium.webdriver import FirefoxOptions
 from selenium.webdriver import Remote as _Remote
 from selenium.webdriver import Safari as _Safari
-from selenium.webdriver.common.proxy import Proxy, ProxyType
+from selenium.webdriver.common.proxy import Proxy
 
 from seleniumwire import backend, utils
 from seleniumwire.inspect import InspectRequestsMixin
@@ -30,7 +30,7 @@ class DriverCommonMixin:
 
         config = {
             "proxy": {
-                "proxyType": ProxyType.MANUAL,
+                "proxyType": "manual",
                 "httpProxy": "{}:{}".format(addr, port),
                 "sslProxy": "{}:{}".format(addr, port),
             },
@@ -47,38 +47,6 @@ class DriverCommonMixin:
         """Shutdown Selenium Wire and then quit the webdriver."""
         self.backend.shutdown()
         super().quit()
-
-    # @property
-    # def proxy(self) -> ProxyConfig:
-    #     """Get the proxy configuration for the driver."""
-
-    #     return self.backend.options.upstream_proxy
-
-    #     conf = {}
-    #     mode: str = self.backend.master.options.mode
-
-    #     if mode and mode.startswith('upstream'):
-    #         upstream = mode.split('upstream:')[1]
-    #         scheme, *rest = upstream.split('://')
-
-    #         auth = self.backend.master.options.upstream_auth
-
-    #         if auth:
-    #             conf[scheme] = f'{scheme}://{auth}@{rest[0]}'
-    #         else:
-    #             conf[scheme] = f'{scheme}://{rest[0]}'
-
-    #     # no_proxy = self.backend.master.options.no_proxy
-
-    #     # if no_proxy:
-    #     #     conf['no_proxy'] = ','.join(no_proxy)
-
-    #     # custom_auth = getattr(self.backend.master.options, 'upstream_custom_auth')
-
-    #     # if custom_auth:
-    #     #     conf['custom_authorization'] = custom_auth
-
-    #     return conf
 
     def remove_upstream_proxy(self):
         """Remove upstream proxy"""
@@ -140,6 +108,8 @@ class Firefox(InspectRequestsMixin, DriverCommonMixin, _Firefox):
 
         super().__init__(*args, **kwargs)
 
+        self.backend.storage.clear_requests()
+
 
 class Chrome(InspectRequestsMixin, DriverCommonMixin, _Chrome):
     """Extend the Chrome webdriver to provide additional methods for inspecting requests."""
@@ -172,11 +142,13 @@ class Chrome(InspectRequestsMixin, DriverCommonMixin, _Chrome):
 
         super().__init__(*args, **kwargs)
 
+        self.backend.storage.clear_requests()
+
 
 class Safari(InspectRequestsMixin, DriverCommonMixin, _Safari):
     """Extend the Safari webdriver to provide additional methods for inspecting requests."""
 
-    def __init__(self, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), *args, **kwargs):
+    def __init__(self, *args, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), **kwargs):
         """Initialise a new Safari WebDriver instance."""
         # Safari does not support automatic proxy configuration through the
         # DesiredCapabilities API, and thus has to be configured manually.
@@ -186,11 +158,13 @@ class Safari(InspectRequestsMixin, DriverCommonMixin, _Safari):
 
         super().__init__(*args, **kwargs)
 
+        self.backend.storage.clear_requests()
+
 
 class Edge(InspectRequestsMixin, DriverCommonMixin, _Edge):
     """Extend the Edge webdriver to provide additional methods for inspecting requests."""
 
-    def __init__(self, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), *args, **kwargs):
+    def __init__(self, *args, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), **kwargs):
         """Initialise a new Edge WebDriver instance."""
         try:
             # Pop-out the edge_options argument and always use the options
@@ -218,6 +192,8 @@ class Edge(InspectRequestsMixin, DriverCommonMixin, _Edge):
 
         super().__init__(*args, **kwargs)
 
+        self.backend.storage.clear_requests()
+
 
 class Remote(InspectRequestsMixin, DriverCommonMixin, _Remote):
     """Extend the Remote webdriver to provide additional methods for inspecting requests."""
@@ -238,3 +214,5 @@ class Remote(InspectRequestsMixin, DriverCommonMixin, _Remote):
             kwargs["desired_capabilities"] = capabilities
 
         super().__init__(*args, **kwargs)
+
+        self.backend.storage.clear_requests()

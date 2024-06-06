@@ -1,8 +1,6 @@
 import logging
 import os
-import pkgutil
 from collections import namedtuple
-from pathlib import Path
 from typing import Optional
 from urllib.request import _parse_proxy as _urllib_parse_proxy  # type: ignore[attr-defined]
 
@@ -11,10 +9,6 @@ from mitmproxy.net import encoding as decoder
 from seleniumwire.options import ProxyConfig
 
 log = logging.getLogger(__name__)
-
-ROOT_CERT = "ca.crt"
-ROOT_KEY = "ca.key"
-COMBINED_CERT = "seleniumwire-ca.pem"
 
 MITM_MODE = "mode"
 MITM_UPSTREAM_AUTH = "upstream_auth"
@@ -35,13 +29,12 @@ def get_mitm_upstream_proxy_args(upstream_proxy: Optional[ProxyConfig]) -> dict[
     Returns: A dictionary of arguments suitable for passing to mitmproxy.
     """
 
-    if upstream_proxy is None:
-        return {}
+    if upstream_proxy is None or (upstream_proxy.http is None and upstream_proxy.https is None):
+        upstream_proxy = ProxyConfig(http=os.getenv("HTTP_PROXY"), https=os.getenv("HTTPS_PROXY"))
 
     http_proxy = _parse_proxy(upstream_proxy.http)
     https_proxy = _parse_proxy(upstream_proxy.https)
 
-    conf = None
     if http_proxy and https_proxy:
         if http_proxy.hostport != https_proxy.hostport:  # noqa
             # We only support a single upstream proxy server
@@ -51,52 +44,16 @@ def get_mitm_upstream_proxy_args(upstream_proxy: Optional[ProxyConfig]) -> dict[
         conf = http_proxy
     elif https_proxy:
         conf = https_proxy
+    else:
+        return {}
 
     args = {}
-
-    if conf:
-        scheme, username, password, hostport = conf
-
-        args[MITM_MODE] = f"upstream:{scheme}://{hostport}"
-
-        if username:
-            args[MITM_UPSTREAM_AUTH] = f"{username}:{password}"
+    scheme, username, password, hostport = conf
+    args[MITM_MODE] = [f"upstream:{scheme}://{hostport}"]
+    if username:
+        args[MITM_UPSTREAM_AUTH] = f"{username}:{password}"
 
     return args
-
-
-def extract_cert_and_key(dest_folder, cert_path=None, key_path=None, check_exists=True):
-    """Extracts the root certificate and key and combines them into a
-    single file called seleniumwire-ca.pem in the specified destination
-    folder.
-
-    Args:
-        dest_folder: The destination folder that the combined certificate
-            and key will be written to.
-        cert_path: Optional path to the root certificate. When not supplied
-            selenium wire's own root certificate will be used.
-        key_path: Optional path to the private key. When not supplied
-            selenium wire's own private key will be used. Note that the key
-            must always be supplied when a certificate is supplied.
-        check_exists: If True the combined file will not be overwritten
-            if it already exists in the destination folder.
-    """
-    os.makedirs(dest_folder, exist_ok=True)
-    combined_path = Path(dest_folder, COMBINED_CERT)
-    if check_exists and combined_path.exists():
-        return
-
-    if cert_path is not None and key_path is not None:
-        root_cert = Path(cert_path).read_bytes()
-        root_key = Path(key_path).read_bytes()
-    elif cert_path is not None or key_path is not None:
-        raise ValueError("A certificate and key must both be supplied")
-    else:
-        root_cert = pkgutil.get_data(__package__, ROOT_CERT)
-        root_key = pkgutil.get_data(__package__, ROOT_KEY)
-
-    with open(combined_path, "wb") as f_out:
-        f_out.write(root_cert + b"\n" + root_key)
 
 
 def urlsafe_address(address):

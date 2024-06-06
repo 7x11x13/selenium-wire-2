@@ -5,8 +5,8 @@ from typing import Literal, Optional
 
 @dataclass
 class ProxyConfig:
-    http: Optional[str] = os.getenv("HTTP_PROXY")
-    https: Optional[str] = os.getenv("HTTPS_PROXY")
+    http: Optional[str] = None
+    https: Optional[str] = None
 
 
 @dataclass
@@ -14,8 +14,6 @@ class SeleniumWireOptions:
     addr: str = "127.0.0.1"
     port: int = 0
     auto_config: bool = True
-    ca_cert: Optional[str] = None
-    ca_key: Optional[str] = None
     disable_capture: bool = False
     disable_encoding: bool = False
     enable_har: bool = False
@@ -24,7 +22,6 @@ class SeleniumWireOptions:
     request_storage: Literal["disk", "memory"] = "disk"
     request_storage_base_dir: Optional[str] = None
     request_storage_max_size: Optional[int] = None
-    standalone: bool = False
-    upstream_proxy: Optional[ProxyConfig] = ProxyConfig()
+    upstream_proxy: Optional[ProxyConfig] = None
     verify_ssl: bool = False
     mitm_options: dict = field(default_factory=dict)

@@ -18,9 +18,7 @@ def create(options: SeleniumWireOptions = SeleniumWireOptions()):
     """
     backend = MitmProxy(options)
 
-    t = threading.Thread(
-        name="Selenium Wire Proxy Server", target=backend.serve_forever, daemon=not options.standalone
-    )
+    t = threading.Thread(name="Selenium Wire Proxy Server", target=backend.serve_forever, daemon=True)
     t.start()
 
     # wait for proxyserver to start

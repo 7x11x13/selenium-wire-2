@@ -97,27 +97,41 @@ class InspectRequestsMixin:
         return har.generate_har(self.backend.storage.load_har_entries())
 
     @property
-    def scopes(self) -> list[str]:
-        """The URL patterns used to scope request capture.
+    def include_urls(self) -> list[str]:
+        """The URL patterns used to scope request capture. Used
+        in conjunction with exclude_urls.
 
-        The value of the scopes should be a list (or tuple) of
-        regular expressions.
+        The value should be a list of regular expressions.
 
         For example:
-            scopes = [
+            driver.include_urls = [
                 '.*stackoverflow.*',
                 '.*github.*'
             ]
         """
-        return self.backend.scopes
+        return self.backend.include_urls
 
-    @scopes.setter
-    def scopes(self, scopes: list[str]):
-        self.backend.scopes = scopes
+    @include_urls.setter
+    def include_urls(self, new_include_urls: list[str]):
+        self.backend.include_urls = new_include_urls
 
-    @scopes.deleter
-    def scopes(self):
-        self.backend.scopes = []
+    @property
+    def exclude_urls(self) -> list[str]:
+        """The URL patterns used to scope request capture. Used
+        in conjunction with include_urls.
+
+        The value should be a list of regular expressions.
+
+        For example:
+            driver.exclude_urls = [
+                '.*/favicon.ico'
+            ]
+        """
+        return self.backend.exclude_urls
+
+    @exclude_urls.setter
+    def exclude_urls(self, new_exclude_urls: list[str]):
+        self.backend.exclude_urls = new_exclude_urls
 
     @property
     def request_interceptor(self) -> Callable[[Request], None]:

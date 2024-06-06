@@ -121,7 +121,7 @@ def create_har_entry(flow: HTTPFlow) -> dict:
             "params": params,
         }
 
-    if flow.server_conn.connected():
+    if flow.server_conn.connected:
         entry["serverIPAddress"] = str(flow.server_conn.ip_address[0])
 
     return entry

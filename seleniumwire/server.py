@@ -12,7 +12,7 @@ from seleniumwire import storage
 from seleniumwire.handler import InterceptRequestHandler
 from seleniumwire.options import SeleniumWireOptions
 from seleniumwire.request import Request, Response
-from seleniumwire.utils import extract_cert_and_key, get_mitm_upstream_proxy_args
+from seleniumwire.utils import get_mitm_upstream_proxy_args
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +25,10 @@ class MitmProxy:
 
         # Used to stored captured requests
         self.storage = storage.create(**self._get_storage_args())
-        extract_cert_and_key(self.storage.home_dir, cert_path=options.ca_cert, key_path=options.ca_key)
 
-        # The scope of requests we're interested in capturing.
-        self.scopes = []
+        # The scope of requests we're interested in capturing
+        self.include_urls = []
+        self.exclude_urls = []
 
         self.request_interceptor: Optional[Callable[[Request], None]] = None
         self.response_interceptor: Optional[Callable[[Request, Response], None]] = None
@@ -56,22 +56,34 @@ class MitmProxy:
         )
 
         if options.disable_capture:
-            self.scopes = ["$^"]
+            self.include_urls = []
+            self.exclude_urls = [".*"]
 
     @property
-    def scopes(self) -> list[str]:
-        return self._scopes
+    def include_urls(self) -> list[str]:
+        return self._include_urls
 
-    @scopes.setter
-    def scopes(self, new_scopes: str | Iterable[str]):
-        if isinstance(new_scopes, str):
-            self._scopes = [new_scopes]
+    @include_urls.setter
+    def include_urls(self, new_include_urls: str | Iterable[str]):
+        if isinstance(new_include_urls, str):
+            self._include_urls = [new_include_urls]
         else:
-            self._scopes = list(new_scopes)
+            self._include_urls = list(new_include_urls)
+
+    @property
+    def exclude_urls(self) -> list[str]:
+        return self._exclude_urls
+
+    @exclude_urls.setter
+    def exclude_urls(self, new_exclude_urls: str | Iterable[str]):
+        if isinstance(new_exclude_urls, str):
+            self._exclude_urls = [new_exclude_urls]
+        else:
+            self._exclude_urls = list(new_exclude_urls)
 
     @property
     def server(self) -> ServerInstance:
-        return self.master.addons.get("proxyserver").servers[0]
+        return next(iter(self.master.addons.get("proxyserver").servers))
 
     async def wait_for_proxyserver(self):
         while not self.master.addons.get("proxyserver").is_running:

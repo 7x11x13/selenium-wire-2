@@ -13,12 +13,14 @@ from unittest.mock import patch
 
 import pytest
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 import seleniumwire
 from seleniumwire import webdriver
 from seleniumwire.options import ProxyConfig, SeleniumWireOptions
 from tests import utils as testutils
+from tests.httpbin_server import Httpbin
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +32,7 @@ def httpbin():
 
 @contextmanager
 def create_httpbin(port=8085, use_https=True):
-    httpbin = testutils.Httpbin(port, use_https)
+    httpbin = Httpbin(port, use_https)
     try:
         yield httpbin
     finally:
@@ -55,7 +57,7 @@ def create_httpproxy(port=8086, mode="http", auth=""):
 @pytest.fixture
 def driver_path():
     if os.name == "nt":
-        return "chromedriver"
+        return "chromedriver.exe"
     return str(Path(__file__).parent / Path("linux", "chromedriver"))
 
 
@@ -63,6 +65,7 @@ def driver_path():
 def chrome_options():
     options = webdriver.ChromeOptions()
     options.binary_location = testutils.get_headless_chromium()
+    options.add_argument("--headless=new")
     return options
 
 
@@ -77,14 +80,9 @@ def create_driver(
     driver_path,
     chrome_options,
     seleniumwire_options=SeleniumWireOptions(),
-    desired_capabilities=None,
 ):
-    driver = webdriver.Chrome(
-        executable_path=driver_path,
-        options=chrome_options,
-        seleniumwire_options=seleniumwire_options,
-        desired_capabilities=desired_capabilities,
-    )
+    service = Service(executable_path=driver_path)
+    driver = webdriver.Chrome(service=service, options=chrome_options, seleniumwire_options=seleniumwire_options)
     try:
         yield driver
     finally:
@@ -117,6 +115,9 @@ def test_capture_requests(driver, httpbin):
 
 
 def test_last_request(driver, httpbin):
+
+    driver.exclude_urls = [".*/favicon.ico"]
+
     driver.get(f"{httpbin}/html")
     driver.get(f"{httpbin}/anything")
 
@@ -140,14 +141,28 @@ def test_wait_for_request_timeout(driver, httpbin):
         driver.wait_for_request(r"\/hello\/", timeout=2)
 
 
-def test_scopes(driver, httpbin):
-    driver.scopes = [".*/anything/.*"]
+def test_include_urls(driver, httpbin):
+    driver.include_urls = [".*/anything/.*"]
 
     driver.get(f"{httpbin}/anything/hello/world")
     driver.get(f"{httpbin}/html")
 
-    assert len(driver.requests) == 1
-    assert driver.requests[0].url == f"{httpbin}/anything/hello/world"
+    urls = {req.url for req in driver.requests}
+
+    assert f"{httpbin}/anything/hello/world" in urls
+    assert f"{httpbin}/html" not in urls
+
+
+def test_exclude_urls(driver, httpbin):
+    driver.exclude_urls = [".*/anything/.*"]
+
+    driver.get(f"{httpbin}/anything/hello/world")
+    driver.get(f"{httpbin}/html")
+
+    urls = {req.url for req in driver.requests}
+
+    assert f"{httpbin}/anything/hello/world" not in urls
+    assert f"{httpbin}/html" in urls
 
 
 def test_add_request_header(driver, httpbin):
@@ -352,29 +367,28 @@ def test_no_auto_config_manual_proxy(driver_path, chrome_options, httpbin):
     }
     capabilities["acceptInsecureCerts"] = True
 
+    for k, v in capabilities.items():
+        chrome_options.set_capability(k, v)
+
     sw_options = SeleniumWireOptions(addr="127.0.0.1", port=8088, auto_config=False)
 
-    with create_driver(
-        driver_path,
-        chrome_options,
-        sw_options,
-        capabilities,
-    ) as driver:
+    with create_driver(driver_path, chrome_options, sw_options) as driver:
 
         driver.get(f"{httpbin}/html")
         driver.wait_for_request("/html")
 
 
 def test_exclude_hosts(driver_path, chrome_options, httpbin):
-    httpbin2 = testutils.Httpbin(port=8090)
     sw_options = SeleniumWireOptions(exclude_hosts=["localhost:8085"])
 
     with create_driver(driver_path, chrome_options, sw_options) as driver:
         driver.get(f"{httpbin}/html")
-        driver.get(f"{httpbin2}/html")
+        driver.get(f"https://7x11x13.xyz/")
 
-        assert len(driver.requests) == 1
-        assert driver.requests[0].url == f"{httpbin2}/html"
+        urls = {req.url for req in driver.requests}
+
+        assert f"https://7x11x13.xyz/" in urls
+        assert f"{httpbin}/html" not in urls
 
 
 @pytest.mark.skip("Fails on GitHub Actions - chromedriver threads timeout")
@@ -412,13 +426,13 @@ def test_address_in_use(driver_path, chrome_options, httpbin):
     sw_options = SeleniumWireOptions(addr="127.0.0.1", port=8089)
 
     with create_driver(driver_path, chrome_options, sw_options):
-        with pytest.raises(Exception, match=".*Address already in use.*"):
+        with pytest.raises(Exception, match=".*only one usage of each socket address.*"):
             with create_driver(driver_path, chrome_options, sw_options):
                 pass
 
 
 def test_har(driver_path, chrome_options, httpbin):
-    with create_driver(driver_path, chrome_options, {"enable_har": True}) as driver:
+    with create_driver(driver_path, chrome_options, SeleniumWireOptions(enable_har=True)) as driver:
         driver.get(f"{httpbin}/html")
 
         har = json.loads(driver.har)
@@ -444,6 +458,9 @@ def test_in_memory_storage(driver_path, chrome_options, httpbin):
     )
 
     with create_driver(driver_path, chrome_options, sw_options) as driver:
+
+        driver.exclude_urls = [".*/favicon.ico"]
+
         driver.get(f"{httpbin}/html")
         driver.get(f"{httpbin}/anything")
 
@@ -472,6 +489,8 @@ def test_switch_proxy_on_the_fly(driver_path, chrome_options, httpbin, httpproxy
                 ProxyConfig(https=str(authproxy))
             )  # Switch the proxy on the same driver instance
 
+            assert driver.backend.server.listen_addrs[0][1] == 8088
+
             driver.get(f"{httpbin}/html")
 
             assert "This passed through a authenticated http proxy" in driver.page_source
@@ -495,7 +514,7 @@ def test_clear_proxy_on_the_fly(driver_path, chrome_options, httpbin, httpproxy)
 
 
 def test_har_encoded_brotli_response(driver_path, chrome_options, httpbin):
-    with create_driver(driver_path, chrome_options, {"enable_har": True}) as driver:
+    with create_driver(driver_path, chrome_options, SeleniumWireOptions(enable_har=True)) as driver:
         driver.get(f"{httpbin}/brotli")
 
         har = json.loads(driver.har)

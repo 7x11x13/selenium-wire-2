@@ -4,68 +4,16 @@ import subprocess
 from pathlib import Path
 
 
-class Httpbin:
-    """Create and manage a httpbin server.
-
-    Creating a new instance of this class will spawn a httpbin server
-    in a subprocess. Clients should call the shutdown() method when they
-    are finished with the server.
-
-    Only compatible on non-Windows systems.
-    """
-
-    def __init__(self, port: int = 8085, use_https: bool = True):
-        """Create a new httpbin server.
-
-        Args:
-            port:
-                Optional port number that the httpbin instance should listen on.
-            use_https:
-                Whether the httpbin instance should use https. When True (the default)
-                the httpbin instance will be addressable as 'https://' otherwise 'http://'.
-        """
-        scheme = "https" if use_https else "http"
-        self.url = f"{scheme}://localhost:{port}"
-
-        args = [
-            "gunicorn",
-            "--bind",
-            f"0.0.0.0:{port}",
-        ]
-
-        if use_https:
-            cert = Path(__file__).parent / "server.crt"
-            key = Path(__file__).parent / "server.key"
-            args.append(f"--certfile={cert}")
-            args.append(f"--keyfile={key}")
-
-        args.append("httpbin:app")
-
-        self.proc = subprocess.Popen(args, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        try:
-            self.proc.wait(timeout=2)
-            # If we're here, wait() has returned meaning no process
-            raise RuntimeError(f"httpbin failed to start: {self.proc.stderr.read().decode()}")
-        except subprocess.TimeoutExpired:
-            # Server running
-            print(f"Created new httpbin server at {self.url}")
-
-    def shutdown(self):
-        """Shutdownthe httpbin server."""
-        if self.proc:
-            self.proc.terminate()
-
-    def __str__(self):
-        return self.url
-
-
 def get_headless_chromium() -> str:
     """Get the path to a headless chromium executable uncompressing the
     executable if required.
 
     Returns: The path.
     """
+
+    if os.name == "nt":
+        return "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
+
     bin_path = Path(__file__).parent / Path("end2end", "linux", "headless-chromium")
 
     if not bin_path.exists():

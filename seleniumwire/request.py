@@ -138,7 +138,10 @@ class Request:
         self.url = urlunsplit(parts)
 
     def create_response(
-        self, status_code: int, headers: Union[dict[str, str], Iterable[tuple[str, str]]] = (), body: bytes = b""
+        self,
+        status_code: HTTPStatus,
+        headers: Union[dict[str, str], Iterable[tuple[str, str]]] = (),
+        body: bytes = b"",
     ):
         """Create a response object and attach it to this request."""
         try:

@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 import pytest
-from selenium.webdriver.common.proxy import ProxyType
 
 from seleniumwire.options import SeleniumWireOptions
 from seleniumwire.webdriver import Chrome, ChromeOptions, Firefox
@@ -55,7 +54,7 @@ class TestFirefoxWebDriver:
 
         proxy = firefox_super_kwargs["options"].proxy
 
-        assert proxy.proxyType == ProxyType.MANUAL
+        assert proxy.proxyType == "manual"
         assert proxy.httpProxy == "127.0.0.1:12345"
         assert proxy.sslProxy == "127.0.0.1:12345"
         assert proxy.noProxy == ""
@@ -100,7 +99,7 @@ class TestChromeWebDriver:
 
         options = chrome_super_kwargs["options"]
 
-        assert options.capabilities["proxy"]["proxyType"] == ProxyType.MANUAL
+        assert options.capabilities["proxy"]["proxyType"] == "manual"
         assert options.capabilities["proxy"]["httpProxy"] == "127.0.0.1:12345"
         assert options.capabilities["proxy"]["sslProxy"] == "127.0.0.1:12345"
         assert "noProxy" not in options.capabilities["proxy"]

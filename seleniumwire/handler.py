@@ -70,8 +70,7 @@ class InterceptRequestHandler:
         self.proxy.storage.save_request(request)
 
         if request.id is not None:  # Will not be None when captured
-            assert hasattr(flow.request, "id")
-            flow.request.id = request.id
+            setattr(flow.request, "id", request.id)
 
         if request.response:
             # This response will be a mocked response. Capture it for completeness.
@@ -89,17 +88,32 @@ class InterceptRequestHandler:
         if request.method in self.proxy.options.ignore_http_methods:
             return False
 
-        scopes = self.proxy.scopes
+        include = self.proxy.include_urls or []
+        exclude = self.proxy.exclude_urls or []
 
-        if not scopes:
+        if not include and not exclude:
             return True
 
-        for scope in scopes:
-            match = re.search(scope, request.url)
-            if match:
-                return True
+        if ".*" in exclude:
+            return False
 
-        return False
+        included = False
+        for inc in include:
+            match = re.match(inc, request.url)
+            if match:
+                included = True
+                break
+
+        if include and not included:
+            # if include is empty, include all urls
+            return False
+
+        for ex in exclude:
+            match = re.match(ex, request.url)
+            if match:
+                return False
+
+        return True
 
     def responseheaders(self, flow: HTTPFlow):
         # Responses that are being captured are not streamed.
@@ -119,6 +133,7 @@ class InterceptRequestHandler:
         # Call the response interceptor if set
         if self.proxy.response_interceptor is not None:
             self.proxy.response_interceptor(self._create_request(flow, response), response)
+            assert flow.response is not None
             flow.response.status_code = response.status_code
             flow.response.reason = response.reason
             flow.response.headers = self._to_headers_obj(response.headers)
