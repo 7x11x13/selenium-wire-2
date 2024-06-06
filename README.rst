@@ -277,8 +277,8 @@ Request objects have the following attributes.
 ``body``
     The request body as ``bytes``. If the request has no body the value of ``body`` will be empty, i.e. ``b''``.
 
-``cert``
-    Information about the server SSL certificate in dictionary format. Empty for non-HTTPS requests.
+``certificate_list``
+    Information about the server SSL certificates. Empty for non-HTTPS requests.
 
 ``date``
     The datetime the request was made.
@@ -673,22 +673,7 @@ The proxy configuration can also be loaded through environment variables called 
 SOCKS
 -----
 
-Using a SOCKS proxy is the same as using an HTTP based one but you set the scheme to ``socks5``:
-
-.. code:: python
-
-    options = {
-        'proxy': {
-            'http': 'socks5://user:pass@192.168.10.100:8888',
-            'https': 'socks5://user:pass@192.168.10.100:8888',
-            'no_proxy': 'localhost,127.0.0.1'
-        }
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
-You can leave out the ``user`` and ``pass`` if your proxy doesn't require authentication.
-
-As well as ``socks5``, the schemes ``socks4`` and ``socks5h`` are supported. Use ``socks5h`` when you want DNS resolution to happen on the proxy server rather than on the client.
+SOCKS upstream proxy is not supported. See <https://github.com/mitmproxy/mitmproxy/issues/211>
 
 **Using Selenium Wire with Tor**
 
@@ -899,9 +884,6 @@ A summary of all options that can be passed to Selenium Wire via the ``seleniumw
         'request_storage_max_size': 100  # Store no more than 100 requests in memory
     }
     driver = webdriver.Chrome(seleniumwire_options=options)
-
-``suppress_connection_errors``
-    Whether to suppress connection related tracebacks. ``True`` by default, meaning that harmless errors that sometimes occur at browser shutdown do not alarm users. When suppressed, the connection error message is logged at DEBUG level without a traceback. Set to ``False`` to allow exception propagation and see full tracebacks.
 
 .. code:: python
 

@@ -56,153 +56,55 @@ class InspectRequestsMixinTest(TestCase):
     def test_wait_for_request(self):
         self.mock_backend.storage.find.return_value = Mock()
 
-        request = self.driver.wait_for_request('/some/path')
+        request = self.driver.wait_for_request("/some/path")
 
         self.assertIsNotNone(request)
-        self.mock_backend.storage.find.assert_called_once_with('/some/path')
+        self.mock_backend.storage.find.assert_called_once_with("/some/path")
 
     def test_wait_for_request_timeout(self):
         self.mock_backend.storage.find.return_value = None
 
         with self.assertRaises(TimeoutException):
-            self.driver.wait_for_request('/some/path', timeout=1)
+            self.driver.wait_for_request("/some/path", timeout=1)
 
         self.assertTrue(self.mock_backend.storage.find.call_count > 0)
         self.assertTrue(self.mock_backend.storage.find.call_count <= 5)
 
-    @patch('seleniumwire.inspect.har')
+    @patch("seleniumwire.inspect.har")
     def test_har(self, mock_har):
         self.mock_backend.storage.load_har_entries.return_value = [
-            'test_entry1',
-            'test_entry2',
+            "test_entry1",
+            "test_entry2",
         ]
-        mock_har.generate_har.return_value = 'test_har'
+        mock_har.generate_har.return_value = "test_har"
 
         har = self.driver.har
 
-        self.assertEqual('test_har', har)
+        self.assertEqual("test_har", har)
         self.mock_backend.storage.load_har_entries.assert_called_once_with()
         mock_har.generate_har.assert_called_once_with(
             [
-                'test_entry1',
-                'test_entry2',
+                "test_entry1",
+                "test_entry2",
             ]
         )
 
-    def test_set_header_overrides(self):
-        header_overrides = {'User-Agent': 'Test_User_Agent_String', 'Accept-Encoding': None}
-
-        self.driver.header_overrides = header_overrides
-
-        self.assertEqual(header_overrides, self.mock_backend.modifier.headers)
-
-    def test_set_header_overrides_non_str(self):
-        header_overrides = {'MyHeader': 99}
-
-        with self.assertRaises(AssertionError):
-            self.driver.header_overrides = header_overrides
-
-    def test_delete_header_overrides(self):
-        self.mock_backend.modifier.headers = {'User-Agent': 'Test_User_Agent_String', 'Accept-Encoding': None}
-
-        del self.driver.header_overrides
-
-        self.assertFalse(hasattr(self.mock_backend.modifier, 'headers'))
-
-    def test_get_header_overrides(self):
-        header_overrides = {'User-Agent': 'Test_User_Agent_String', 'Accept-Encoding': None}
-        self.mock_backend.modifier.headers = header_overrides
-
-        self.assertEqual(header_overrides, self.driver.header_overrides)
-
-    def test_set_param_overrides(self):
-        param_overrides = {'foo': 'bar'}
-
-        self.driver.param_overrides = param_overrides
-
-        self.assertEqual(param_overrides, self.mock_backend.modifier.params)
-
-    def test_delete_param_overrides(self):
-        self.mock_backend.modifier.params = {'foo': 'bar'}
-
-        del self.driver.param_overrides
-
-        self.assertFalse(hasattr(self.mock_backend.modifier, 'params'))
-
-    def test_get_param_overrides(self):
-        param_overrides = {'foo': 'bar'}
-
-        self.mock_backend.modifier.params = param_overrides
-
-        self.assertEqual(param_overrides, self.driver.param_overrides)
-
-    def test_set_querystring_overrides(self):
-        querystring_overrides = 'foo=bar&hello=world'
-
-        self.driver.querystring_overrides = querystring_overrides
-
-        self.assertEqual(querystring_overrides, self.mock_backend.modifier.querystring)
-
-    def test_delete_querystring_overrides(self):
-        self.mock_backend.modifier.querystring = 'foo=bar&hello=world'
-
-        del self.driver.querystring_overrides
-
-        self.assertFalse(hasattr(self.mock_backend.modifier, 'querystring'))
-
-    def test_get_querystring_overrides(self):
-        querystring_overrides = 'foo=bar&hello=world'
-
-        self.mock_backend.modifier.querystring = querystring_overrides
-
-        self.assertEqual(querystring_overrides, self.driver.querystring_overrides)
-
-    def test_set_rewrite_rules(self):
-        rewrite_rules = [
-            ('http://somewhere.com/', 'https://www.somewhere.com'),
-            ('http://otherplace.com/', 'http://otherplace.com/api/'),
-        ]
-
-        self.driver.rewrite_rules = rewrite_rules
-
-        self.assertEqual(rewrite_rules, self.mock_backend.modifier.rewrite_rules)
-
-    def test_delete_rewrite_rules(self):
-        self.mock_backend.modifier.rewrite_rules = [
-            ('http://somewhere.com/', 'https://www.somewhere.com'),
-            ('http://otherplace.com/', 'http://otherplace.com/api/'),
-        ]
-
-        del self.driver.rewrite_rules
-
-        self.assertFalse(hasattr(self.mock_backend.modifier, 'rewrite_rules'))
-
-    def test_get_rewrite_rules(self):
-        rewrite_rules = [
-            ('http://somewhere.com/', 'https://www.somewhere.com'),
-            ('http://otherplace.com/', 'http://otherplace.com/api/'),
-        ]
-
-        self.mock_backend.modifier.rewrite_rules = rewrite_rules
-
-        self.assertEqual(rewrite_rules, self.driver.rewrite_rules)
-
     def test_set_scopes(self):
-        scopes = ['.*stackoverflow.*', '.*github.*']
+        scopes = [".*stackoverflow.*", ".*github.*"]
 
         self.driver.scopes = scopes
 
         self.assertEqual(scopes, self.mock_backend.scopes)
 
     def test_delete_scopes(self):
-        self.mock_backend.scopes = ['.*stackoverflow.*', '.*github.*']
+        self.mock_backend.scopes = [".*stackoverflow.*", ".*github.*"]
 
         del self.driver.scopes
 
         self.assertEqual([], self.mock_backend.scopes)
 
     def test_get_scopes(self):
-        scopes = ['.*stackoverflow.*', '.*github.*']
+        scopes = [".*stackoverflow.*", ".*github.*"]
 
         self.mock_backend.scopes = scopes
 

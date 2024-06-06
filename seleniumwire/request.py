@@ -3,8 +3,10 @@
 from datetime import datetime
 from http import HTTPStatus
 from http.client import HTTPMessage
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Iterable, Optional, Union
 from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
+
+from mitmproxy.certs import Cert
 
 
 class HTTPHeaders(HTTPMessage):
@@ -20,7 +22,7 @@ class HTTPHeaders(HTTPMessage):
 class Request:
     """Represents an HTTP request."""
 
-    def __init__(self, *, method: str, url: str, headers: Iterable[Tuple[str, str]], body: bytes = b''):
+    def __init__(self, *, method: str, url: str, headers: Iterable[tuple[str, str]], body: bytes = b""):
         """Initialise a new Request object.
 
         Args:
@@ -40,8 +42,17 @@ class Request:
         self.body = body
         self.response: Optional[Response] = None
         self.date: datetime = datetime.now()
-        self.ws_messages: List[WebSocketMessage] = []
-        self.cert: dict = {}
+        self.ws_messages: list[WebSocketMessage] = []
+        self.certificate_list: list[Cert] = []
+
+    def __getstate__(self):
+        state = self.__dict__
+        state["certificate_list"] = [cert.get_state() for cert in state["certificate_list"]]
+        return state
+
+    def __setstate__(self, state):
+        state["certificate_list"] = [Cert.from_state(cert) for cert in state["certificate_list"]]
+        self.__dict__ = state
 
     @property
     def body(self) -> bytes:
@@ -54,11 +65,11 @@ class Request:
     @body.setter
     def body(self, b: bytes):
         if b is None:
-            self._body = b''
+            self._body = b""
         elif isinstance(b, str):
-            self._body = b.encode('utf-8')
+            self._body = b.encode("utf-8")
         elif not isinstance(b, bytes):
-            raise TypeError('body must be of type bytes')
+            raise TypeError("body must be of type bytes")
         else:
             self._body = b
 
@@ -77,7 +88,7 @@ class Request:
         self.url = urlunsplit(parts)
 
     @property
-    def params(self) -> Dict[str, Union[str, List[str]]]:
+    def params(self) -> dict[str, Union[str, list[str]]]:
         """Get the request parameters.
 
         Parameters are returned as a dictionary. Each dictionary entry will have a single
@@ -88,17 +99,17 @@ class Request:
         """
         qs = self.querystring
 
-        if self.headers.get('Content-Type') == 'application/x-www-form-urlencoded' and self.body:
-            qs = self.body.decode('utf-8', errors='replace')
+        if self.headers.get("Content-Type") == "application/x-www-form-urlencoded" and self.body:
+            qs = self.body.decode("utf-8", errors="replace")
 
         return {name: val[0] if len(val) == 1 else val for name, val in parse_qs(qs, keep_blank_values=True).items()}
 
     @params.setter
-    def params(self, p: Dict[str, Union[str, List[str]]]):
+    def params(self, p: dict[str, Union[str, list[str]]]):
         qs = urlencode(p, doseq=True)
 
-        if self.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-            self.body = qs.encode('utf-8', errors='replace')
+        if self.headers.get("Content-Type") == "application/x-www-form-urlencoded":
+            self.body = qs.encode("utf-8", errors="replace")
         else:
             parts = list(urlsplit(self.url))
             parts[3] = qs
@@ -127,13 +138,13 @@ class Request:
         self.url = urlunsplit(parts)
 
     def create_response(
-        self, status_code: int, headers: Union[Dict[str, str], Iterable[Tuple[str, str]]] = (), body: bytes = b''
+        self, status_code: int, headers: Union[dict[str, str], Iterable[tuple[str, str]]] = (), body: bytes = b""
     ):
         """Create a response object and attach it to this request."""
         try:
             reason = {v: v.phrase for v in HTTPStatus.__members__.values()}[status_code]
         except KeyError:
-            raise ValueError('Unknown status code: {}'.format(status_code))
+            raise ValueError("Unknown status code: {}".format(status_code))
 
         if isinstance(headers, dict):
             headers = headers.items()
@@ -147,7 +158,7 @@ class Request:
         self.create_response(status_code=error_code)
 
     def __repr__(self):
-        return 'Request(method={method!r}, url={url!r}, headers={headers!r}, body={_body!r})'.format_map(vars(self))
+        return "Request(method={method!r}, url={url!r}, headers={headers!r}, body={_body!r})".format_map(vars(self))
 
     def __str__(self):
         return self.url
@@ -156,7 +167,7 @@ class Request:
 class Response:
     """Represents an HTTP response."""
 
-    def __init__(self, *, status_code: int, reason: str, headers: Iterable[Tuple[str, str]], body: bytes = b''):
+    def __init__(self, *, status_code: int, reason: str, headers: Iterable[tuple[str, str]], body: bytes = b""):
         """Initialise a new Response object.
 
         Args:
@@ -174,7 +185,16 @@ class Response:
 
         self.body = body
         self.date: datetime = datetime.now()
-        self.cert: dict = {}
+        self.certificate_list: list[Cert] = []
+
+    def __getstate__(self):
+        state = self.__dict__
+        state["certificate_list"] = [cert.get_state() for cert in state["certificate_list"]]
+        return state
+
+    def __setstate__(self, state):
+        state["certificate_list"] = [Cert.from_state(cert) for cert in state["certificate_list"]]
+        self.__dict__ = state
 
     @property
     def body(self) -> bytes:
@@ -187,22 +207,22 @@ class Response:
     @body.setter
     def body(self, b: bytes):
         if b is None:
-            self._body = b''
+            self._body = b""
         elif isinstance(b, str):
-            self._body = b.encode('utf-8')
+            self._body = b.encode("utf-8")
         elif not isinstance(b, bytes):
-            raise TypeError('body must be of type bytes')
+            raise TypeError("body must be of type bytes")
         else:
             self._body = b
 
     def __repr__(self):
         return (
-            'Response(status_code={status_code!r}, reason={reason!r}, headers={headers!r}, '
-            'body={_body!r})'.format_map(vars(self))
+            "Response(status_code={status_code!r}, reason={reason!r}, headers={headers!r}, "
+            "body={_body!r})".format_map(vars(self))
         )
 
     def __str__(self):
-        return '{} {}'.format(self.status_code, self.reason)
+        return "{} {}".format(self.status_code, self.reason)
 
 
 class WebSocketMessage:
@@ -225,7 +245,7 @@ class WebSocketMessage:
     def __str__(self):
         if isinstance(self.content, str):
             return self.content
-        return f'<{len(self.content)} bytes of binary websocket data>'
+        return f"<{len(self.content)} bytes of binary websocket data>"
 
     def __eq__(self, other):
         if not isinstance(other, WebSocketMessage):

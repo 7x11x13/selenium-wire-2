@@ -4,24 +4,31 @@ import pickle
 import shutil
 import tempfile
 from collections.abc import Iterator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fnmatch import fnmatch
 from unittest import TestCase
 from unittest.mock import patch
 
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
+
+from seleniumwire import Cert
 from seleniumwire.request import Request, Response, WebSocketMessage
 from seleniumwire.storage import InMemoryRequestStorage, RequestStorage, create
 
 
 class CreateTest(TestCase):
-    @patch('seleniumwire.storage.os')
+
+    @patch("seleniumwire.storage.os")
     def test_create_default_storage(self, mock_os):
-        base_dir = '/some/dir'
+        base_dir = "/some/dir"
         mock_os.path = os.path
         storage = create(base_dir=base_dir)
 
         self.assertIsInstance(storage, RequestStorage)
-        self.assertEqual(storage.home_dir, os.path.join(base_dir, '.seleniumwire'))
+        self.assertEqual(storage.home_dir, os.path.join(base_dir, ".seleniumwire"))
 
     def test_create_in_memory_storage(self):
         storage = create(memory_only=True, maxsize=10)
@@ -32,7 +39,7 @@ class CreateTest(TestCase):
 
 class RequestStorageTest(TestCase):
     def test_initialise(self):
-        storage_dir = glob.glob(os.path.join(self.base_dir, '.seleniumwire', 'storage-*'))
+        storage_dir = glob.glob(os.path.join(self.base_dir, ".seleniumwire", "storage-*"))
 
         self.assertEqual(1, len(storage_dir))
 
@@ -45,16 +52,16 @@ class RequestStorageTest(TestCase):
 
     def test_cleanup_does_not_remove_parent_folder(self):
         # There is an existing storage folder
-        os.makedirs(os.path.join(self.base_dir, '.seleniumwire', 'teststorage'))
+        os.makedirs(os.path.join(self.base_dir, ".seleniumwire", "teststorage"))
         self.storage.cleanup()
 
         # The existing storage folder is not cleaned up
         self.assertEqual(1, len(os.listdir(self.base_dir)))
-        self.assertTrue(os.path.exists(os.path.join(self.base_dir, '.seleniumwire', 'teststorage')))
+        self.assertTrue(os.path.exists(os.path.join(self.base_dir, ".seleniumwire", "teststorage")))
 
     def test_initialise_clears_old_folders(self):
-        old_dir = os.path.join(self.base_dir, '.seleniumwire', 'storage-test1')
-        new_dir = os.path.join(self.base_dir, '.seleniumwire', 'storage-test2')
+        old_dir = os.path.join(self.base_dir, ".seleniumwire", "storage-test1")
+        new_dir = os.path.join(self.base_dir, ".seleniumwire", "storage-test2")
         os.makedirs(old_dir)
         os.makedirs(new_dir)
         two_days_ago = (datetime.now() - timedelta(days=2)).timestamp()
@@ -70,26 +77,26 @@ class RequestStorageTest(TestCase):
 
         self.storage.save_request(request)
 
-        request_file_path = self._get_stored_path(request.id, 'request')
+        request_file_path = self._get_stored_path(request.id, "request")
 
-        with open(request_file_path[0], 'rb') as loaded:
+        with open(request_file_path[0], "rb") as loaded:
             loaded_request = pickle.load(loaded)
 
         self.assertEqual(request.id, loaded_request.id)
-        self.assertEqual('http://www.example.com/test/path/', loaded_request.url)
-        self.assertEqual('GET', loaded_request.method)
-        self.assertEqual({'Host': 'www.example.com', 'Accept': '*/*'}, dict(loaded_request.headers))
+        self.assertEqual("http://www.example.com/test/path/", loaded_request.url)
+        self.assertEqual("GET", loaded_request.method)
+        self.assertEqual({"Host": "www.example.com", "Accept": "*/*"}, dict(loaded_request.headers))
         self.assertIsNone(loaded_request.response)
 
     def test_save_request_with_body(self):
-        body = b'test request body'
+        body = b"test request body"
         request = self._create_request(body=body)
 
         self.storage.save_request(request)
 
-        request_file_path = self._get_stored_path(request.id, 'request')
+        request_file_path = self._get_stored_path(request.id, "request")
 
-        with open(request_file_path[0], 'rb') as loaded:
+        with open(request_file_path[0], "rb") as loaded:
             loaded_request = pickle.load(loaded)
 
         self.assertEqual(body, loaded_request.body)
@@ -101,29 +108,29 @@ class RequestStorageTest(TestCase):
 
         self.storage.save_response(request.id, response)
 
-        response_file_path = self._get_stored_path(request.id, 'response')
+        response_file_path = self._get_stored_path(request.id, "response")
 
-        with open(response_file_path[0], 'rb') as loaded:
+        with open(response_file_path[0], "rb") as loaded:
             loaded_response = pickle.load(loaded)
 
         self.assertEqual(200, loaded_response.status_code)
-        self.assertEqual('OK', loaded_response.reason)
-        self.assertEqual({'Content-Type': 'application/json', 'Content-Length': '500'}, dict(loaded_response.headers))
+        self.assertEqual("OK", loaded_response.reason)
+        self.assertEqual({"Content-Type": "application/json", "Content-Length": "500"}, dict(loaded_response.headers))
 
     def test_save_response_with_body(self):
-        body = b'some response body'
+        body = b"some response body"
         request = self._create_request()
         self.storage.save_request(request)
         response = self._create_response(body=body)
 
         self.storage.save_response(request.id, response)
 
-        response_file_path = self._get_stored_path(request.id, 'response')
+        response_file_path = self._get_stored_path(request.id, "response")
 
-        with open(response_file_path[0], 'rb') as loaded:
+        with open(response_file_path[0], "rb") as loaded:
             loaded_response = pickle.load(loaded)
 
-        self.assertEqual(b'some response body', loaded_response.body)
+        self.assertEqual(b"some response body", loaded_response.body)
 
     def test_save_response_no_request(self):
         request = self._create_request()
@@ -133,7 +140,7 @@ class RequestStorageTest(TestCase):
 
         self.storage.save_response(request.id, response)
 
-        response_file_path = self._get_stored_path(request.id, 'response')
+        response_file_path = self._get_stored_path(request.id, "response")
 
         self.assertFalse(response_file_path)
 
@@ -141,23 +148,23 @@ class RequestStorageTest(TestCase):
         request = self._create_request()
         self.storage.save_request(request)
 
-        self.storage.save_har_entry(request.id, {'name': 'test_har_entry'})
+        self.storage.save_har_entry(request.id, {"name": "test_har_entry"})
 
-        har_file_path = self._get_stored_path(request.id, 'har_entry')
+        har_file_path = self._get_stored_path(request.id, "har_entry")
 
-        with open(har_file_path[0], 'rb') as loaded:
+        with open(har_file_path[0], "rb") as loaded:
             loaded_har = pickle.load(loaded)
 
-        self.assertEqual(loaded_har['name'], 'test_har_entry')
+        self.assertEqual(loaded_har["name"], "test_har_entry")
 
     def test_save_har_entry_no_request(self):
         request = self._create_request()
         self.storage.save_request(request)
         self.storage.clear_requests()
 
-        self.storage.save_har_entry(request.id, {'name': 'test_har_entry'})
+        self.storage.save_har_entry(request.id, {"name": "test_har_entry"})
 
-        har_file_path = self._get_stored_path(request.id, 'har_entry')
+        har_file_path = self._get_stored_path(request.id, "har_entry")
 
         self.assertFalse(har_file_path)
 
@@ -175,7 +182,7 @@ class RequestStorageTest(TestCase):
         self.assertIsNone(requests[0].response)
         self.assertIsNone(requests[1].response)
 
-    @patch('seleniumwire.storage.pickle')
+    @patch("seleniumwire.storage.pickle")
     def test_load_requests_unpickle_error(self, mock_pickle):
         request_1 = self._create_request()
         request_2 = self._create_request()
@@ -212,7 +219,7 @@ class RequestStorageTest(TestCase):
 
         self.assertIsNotNone(requests[0].response)
 
-    @patch('seleniumwire.storage.pickle')
+    @patch("seleniumwire.storage.pickle")
     def test_load_response_unpickle_error(self, mock_pickle):
         request = self._create_request()
         self.storage.save_request(request)
@@ -248,7 +255,7 @@ class RequestStorageTest(TestCase):
             request_1.id,
             WebSocketMessage(
                 from_client=True,
-                content='websocket test message',
+                content="websocket test message",
                 date=datetime.now(),
             ),
         )
@@ -256,20 +263,20 @@ class RequestStorageTest(TestCase):
         requests = self.storage.load_requests()
 
         self.assertTrue(len(requests[0].ws_messages) > 0)
-        self.assertEqual('websocket test message', requests[0].ws_messages[0].content)
+        self.assertEqual("websocket test message", requests[0].ws_messages[0].content)
         self.assertTrue(len(requests[1].ws_messages) == 0)
 
     def test_load_request_cert_data(self):
         request = self._create_request()
         self.storage.save_request(request)
         response = self._create_response()
-        response.cert = {'subject': 'test_cert'}
+        cert = self._create_cert()
+        response.certificate_list = [cert]
         self.storage.save_response(request.id, response)
 
         requests = self.storage.load_requests()
 
-        self.assertEqual({'subject': 'test_cert'}, requests[0].cert)
-        self.assertFalse(hasattr(requests[0].response, 'cert'))
+        self.assertEqual([cert], requests[0].certificate_list)
 
     def test_clear_requests(self):
         request_1 = self._create_request()
@@ -281,60 +288,95 @@ class RequestStorageTest(TestCase):
         requests = self.storage.load_requests()
 
         self.assertFalse(requests)
-        self.assertFalse(glob.glob(os.path.join(self.base_dir, '.seleniumwire', 'storage-*', '*')))
+        self.assertFalse(glob.glob(os.path.join(self.base_dir, ".seleniumwire", "storage-*", "*")))
 
     def test_get_home_dir(self):
-        self.assertEqual(os.path.join(self.base_dir, '.seleniumwire'), self.storage.home_dir)
+        self.assertEqual(os.path.join(self.base_dir, ".seleniumwire"), self.storage.home_dir)
 
     def test_get_session_dir(self):
-        self.assertTrue(fnmatch(self.storage.session_dir, os.path.join(self.base_dir, '.seleniumwire', 'storage-*')))
+        self.assertTrue(fnmatch(self.storage.session_dir, os.path.join(self.base_dir, ".seleniumwire", "storage-*")))
 
     def test_find(self):
-        request_1 = self._create_request('http://www.example.com/test/path/?foo=bar')
-        request_2 = self._create_request('http://www.stackoverflow.com/other/path/?x=y')
+        request_1 = self._create_request("http://www.example.com/test/path/?foo=bar")
+        request_2 = self._create_request("http://www.stackoverflow.com/other/path/?x=y")
         mock_response = self._create_response()
         self.storage.save_request(request_1)
         self.storage.save_response(request_1.id, mock_response)
         self.storage.save_request(request_2)
 
-        self.assertEqual(request_1.id, self.storage.find('/test/path/').id)
-        self.assertEqual(request_1.id, self.storage.find(r'/test/path/\?foo=bar').id)
-        self.assertEqual(request_1.id, self.storage.find(r'http://www.example.com/test/path/\?foo=bar').id)
-        self.assertEqual(request_1.id, self.storage.find(r'http://www.example.com/test/path/').id)
+        self.assertEqual(request_1.id, self.storage.find("/test/path/").id)
+        self.assertEqual(request_1.id, self.storage.find(r"/test/path/\?foo=bar").id)
+        self.assertEqual(request_1.id, self.storage.find(r"http://www.example.com/test/path/\?foo=bar").id)
+        self.assertEqual(request_1.id, self.storage.find(r"http://www.example.com/test/path/").id)
 
-        self.assertIsNone(self.storage.find('/different/path'))
-        self.assertIsNone(self.storage.find('/test/path/?x=y'))
-        self.assertIsNone(self.storage.find(r'http://www.example.com/different/path/\?foo=bar'))
-        self.assertIsNone(self.storage.find(r'http://www.different.com/test/path/\?foo=bar'))
-        self.assertIsNone(self.storage.find(r'http://www.example.com/test/path/\?x=y'))
+        self.assertIsNone(self.storage.find("/different/path"))
+        self.assertIsNone(self.storage.find("/test/path/?x=y"))
+        self.assertIsNone(self.storage.find(r"http://www.example.com/different/path/\?foo=bar"))
+        self.assertIsNone(self.storage.find(r"http://www.different.com/test/path/\?foo=bar"))
+        self.assertIsNone(self.storage.find(r"http://www.example.com/test/path/\?x=y"))
 
     def test_find_similar_urls(self):
-        request_1 = self._create_request('https://192.168.1.1/redfish/v1')
-        request_2 = self._create_request('https://192.168.1.1/redfish')
+        request_1 = self._create_request("https://192.168.1.1/redfish/v1")
+        request_2 = self._create_request("https://192.168.1.1/redfish")
         mock_response = self._create_response()
         self.storage.save_request(request_1)
         self.storage.save_response(request_1.id, mock_response)
         self.storage.save_request(request_2)
         self.storage.save_response(request_2.id, mock_response)
 
-        self.assertEqual(request_1.id, self.storage.find('.*v1').id)
-        self.assertEqual(request_2.id, self.storage.find('https://192.168.1.1/redfish$').id)
+        self.assertEqual(request_1.id, self.storage.find(".*v1").id)
+        self.assertEqual(request_2.id, self.storage.find("https://192.168.1.1/redfish$").id)
 
     def _get_stored_path(self, request_id, filename):
         return glob.glob(
-            os.path.join(self.base_dir, '.seleniumwire', 'storage-*', 'request-{}'.format(request_id), filename)
+            os.path.join(self.base_dir, ".seleniumwire", "storage-*", "request-{}".format(request_id), filename)
         )
 
-    def _create_request(self, url='http://www.example.com/test/path/', body=b''):
-        headers = [('Host', 'www.example.com'), ('Accept', '*/*')]
-        return Request(method='GET', url=url, headers=headers, body=body)
+    def _create_request(self, url="http://www.example.com/test/path/", body=b""):
+        headers = [("Host", "www.example.com"), ("Accept", "*/*")]
+        return Request(method="GET", url=url, headers=headers, body=body)
 
-    def _create_response(self, body=b''):
-        headers = [('Content-Type', 'application/json'), ('Content-Length', '500')]
-        return Response(status_code=200, reason='OK', headers=headers, body=body)
+    def _create_response(self, body=b""):
+        headers = [("Content-Type", "application/json"), ("Content-Length", "500")]
+        return Response(status_code=200, reason="OK", headers=headers, body=body)
+
+    def _create_cert(self):
+        key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+        subject = issuer = x509.Name(
+            [
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "California"),
+                x509.NameAttribute(NameOID.LOCALITY_NAME, "San Francisco"),
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "My Company"),
+                x509.NameAttribute(NameOID.COMMON_NAME, "mysite.com"),
+            ]
+        )
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.now(timezone.utc))
+            .not_valid_after(
+                # Our certificate will be valid for 10 days
+                datetime.now(timezone.utc)
+                + timedelta(days=10)
+            )
+            .add_extension(
+                x509.SubjectAlternativeName([x509.DNSName("localhost")]),
+                critical=False,
+                # Sign our certificate with our private key
+            )
+            .sign(key, hashes.SHA256())
+        )
+        return Cert(cert)
 
     def setUp(self):
-        self.base_dir = os.path.join(os.path.dirname(__file__), 'data')
+        self.base_dir = os.path.join(os.path.dirname(__file__), "data")
         self.storage = RequestStorage(base_dir=self.base_dir)
 
     def tearDown(self):
@@ -380,13 +422,12 @@ class InMemoryRequestStorageTest(TestCase):
         request = self._create_request()
         self.storage.save_request(request)
         response = self._create_response()
-        response.cert = 'cert_data'
+        response.certificate_list = ["cert_data"]
 
         self.storage.save_response(request.id, response)
 
         request = self.storage.load_requests()[0]
-        self.assertEqual(request.cert, 'cert_data')
-        self.assertFalse(hasattr(request.response, 'cert'))
+        self.assertEqual(request.certificate_list, ["cert_data"])
 
     def test_save_response_no_request(self):
         request = self._create_request()
@@ -400,7 +441,7 @@ class InMemoryRequestStorageTest(TestCase):
 
     def test_save_har_entry(self):
         request = self._create_request()
-        har_entry = {'name': 'test_har_entry'}
+        har_entry = {"name": "test_har_entry"}
         self.storage.save_request(request)
 
         self.storage.save_har_entry(request.id, har_entry)
@@ -412,7 +453,7 @@ class InMemoryRequestStorageTest(TestCase):
         self.storage.save_request(request)
         self.storage.clear_requests()
 
-        self.storage.save_har_entry(request.id, {'name': 'test_har_entry'})
+        self.storage.save_har_entry(request.id, {"name": "test_har_entry"})
 
         self.assertEqual(len(self.storage.load_har_entries()), 0)
 
@@ -468,7 +509,7 @@ class InMemoryRequestStorageTest(TestCase):
             request_1.id,
             WebSocketMessage(
                 from_client=True,
-                content='websocket test message',
+                content="websocket test message",
                 date=datetime.now(),
             ),
         )
@@ -476,7 +517,7 @@ class InMemoryRequestStorageTest(TestCase):
         requests = self.storage.load_requests()
 
         self.assertTrue(len(requests[0].ws_messages) > 0)
-        self.assertEqual('websocket test message', requests[0].ws_messages[0].content)
+        self.assertEqual("websocket test message", requests[0].ws_messages[0].content)
         self.assertTrue(len(requests[1].ws_messages) == 0)
 
     def test_clear_requests(self):
@@ -502,46 +543,46 @@ class InMemoryRequestStorageTest(TestCase):
         self.assertFalse(requests)
 
     def test_get_home_dir(self):
-        self.assertEqual(os.path.join(tempfile.gettempdir(), '.seleniumwire'), self.storage.home_dir)
+        self.assertEqual(os.path.join(tempfile.gettempdir(), ".seleniumwire"), self.storage.home_dir)
 
     def test_find(self):
-        request_1 = self._create_request('http://www.example.com/test/path/?foo=bar')
-        request_2 = self._create_request('http://www.stackoverflow.com/other/path/?x=y')
+        request_1 = self._create_request("http://www.example.com/test/path/?foo=bar")
+        request_2 = self._create_request("http://www.stackoverflow.com/other/path/?x=y")
         mock_response = self._create_response()
         self.storage.save_request(request_1)
         self.storage.save_response(request_1.id, mock_response)
         self.storage.save_request(request_2)
 
-        self.assertEqual(request_1.id, self.storage.find('/test/path/').id)
-        self.assertEqual(request_1.id, self.storage.find(r'/test/path/\?foo=bar').id)
-        self.assertEqual(request_1.id, self.storage.find(r'http://www.example.com/test/path/\?foo=bar').id)
-        self.assertEqual(request_1.id, self.storage.find(r'http://www.example.com/test/path/').id)
+        self.assertEqual(request_1.id, self.storage.find("/test/path/").id)
+        self.assertEqual(request_1.id, self.storage.find(r"/test/path/\?foo=bar").id)
+        self.assertEqual(request_1.id, self.storage.find(r"http://www.example.com/test/path/\?foo=bar").id)
+        self.assertEqual(request_1.id, self.storage.find(r"http://www.example.com/test/path/").id)
 
-        self.assertIsNone(self.storage.find('/different/path'))
-        self.assertIsNone(self.storage.find('/test/path/?x=y'))
-        self.assertIsNone(self.storage.find(r'http://www.example.com/different/path/\?foo=bar'))
-        self.assertIsNone(self.storage.find(r'http://www.different.com/test/path/\?foo=bar'))
-        self.assertIsNone(self.storage.find(r'http://www.example.com/test/path/\?x=y'))
+        self.assertIsNone(self.storage.find("/different/path"))
+        self.assertIsNone(self.storage.find("/test/path/?x=y"))
+        self.assertIsNone(self.storage.find(r"http://www.example.com/different/path/\?foo=bar"))
+        self.assertIsNone(self.storage.find(r"http://www.different.com/test/path/\?foo=bar"))
+        self.assertIsNone(self.storage.find(r"http://www.example.com/test/path/\?x=y"))
 
     def test_find_similar_urls(self):
-        request_1 = self._create_request('https://192.168.1.1/redfish/v1')
-        request_2 = self._create_request('https://192.168.1.1/redfish')
+        request_1 = self._create_request("https://192.168.1.1/redfish/v1")
+        request_2 = self._create_request("https://192.168.1.1/redfish")
         mock_response = self._create_response()
         self.storage.save_request(request_1)
         self.storage.save_response(request_1.id, mock_response)
         self.storage.save_request(request_2)
         self.storage.save_response(request_2.id, mock_response)
 
-        self.assertEqual(request_1.id, self.storage.find('.*v1').id)
-        self.assertEqual(request_2.id, self.storage.find('https://192.168.1.1/redfish$').id)
+        self.assertEqual(request_1.id, self.storage.find(".*v1").id)
+        self.assertEqual(request_2.id, self.storage.find("https://192.168.1.1/redfish$").id)
 
-    def _create_request(self, url='http://www.example.com/test/path/'):
-        headers = [('Host', 'www.example.com'), ('Accept', '*/*')]
-        return Request(method='GET', url=url, headers=headers, body=b'foobarbaz')
+    def _create_request(self, url="http://www.example.com/test/path/"):
+        headers = [("Host", "www.example.com"), ("Accept", "*/*")]
+        return Request(method="GET", url=url, headers=headers, body=b"foobarbaz")
 
-    def _create_response(self, body=b''):
-        headers = [('Content-Type', 'application/json'), ('Content-Length', '500')]
-        return Response(status_code=200, reason='OK', headers=headers, body=body)
+    def _create_response(self, body=b""):
+        headers = [("Content-Type", "application/json"), ("Content-Length", "500")]
+        return Response(status_code=200, reason="OK", headers=headers, body=body)
 
     def setUp(self) -> None:
         self.storage = InMemoryRequestStorage()

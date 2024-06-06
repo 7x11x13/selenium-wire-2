@@ -8,15 +8,15 @@ from mitmproxy import ctx, http
 class InjectMessage:
     def load(self, loader):
         loader.add_option(
-            name='message',
+            name="message",
             typespec=str,
-            default='http',
+            default="http",
             help="Specify the message to inject.",
         )
 
     def response(self, flow: http.HTTPFlow) -> None:
         flow.response.content = flow.response.content.replace(
-            b'</body>', b'<!-- %s --></body>' % ctx.options.message.encode('utf-8')
+            b"</body>", b"<!-- %s --></body>" % ctx.options.message.encode("utf-8")
         )
 
 

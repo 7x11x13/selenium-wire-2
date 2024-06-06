@@ -24,35 +24,32 @@ class Httpbin:
                 Whether the httpbin instance should use https. When True (the default)
                 the httpbin instance will be addressable as 'https://' otherwise 'http://'.
         """
-        scheme = 'https' if use_https else 'http'
-        self.url = f'{scheme}://localhost:{port}'
-
-        # Gunicorn doesn't work on Windows
-        assert os.name != 'nt', 'The httpbin utility does not run on Windows'
+        scheme = "https" if use_https else "http"
+        self.url = f"{scheme}://localhost:{port}"
 
         args = [
-            'gunicorn',
-            '--bind',
-            f'0.0.0.0:{port}',
+            "gunicorn",
+            "--bind",
+            f"0.0.0.0:{port}",
         ]
 
         if use_https:
-            cert = Path(__file__).parent / 'server.crt'
-            key = Path(__file__).parent / 'server.key'
-            args.append(f'--certfile={cert}')
-            args.append(f'--keyfile={key}')
+            cert = Path(__file__).parent / "server.crt"
+            key = Path(__file__).parent / "server.key"
+            args.append(f"--certfile={cert}")
+            args.append(f"--keyfile={key}")
 
-        args.append('httpbin:app')
+        args.append("httpbin:app")
 
         self.proc = subprocess.Popen(args, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         try:
             self.proc.wait(timeout=2)
             # If we're here, wait() has returned meaning no process
-            raise RuntimeError(f'httpbin failed to start: {self.proc.stderr.read().decode()}')
+            raise RuntimeError(f"httpbin failed to start: {self.proc.stderr.read().decode()}")
         except subprocess.TimeoutExpired:
             # Server running
-            print(f'Created new httpbin server at {self.url}')
+            print(f"Created new httpbin server at {self.url}")
 
     def shutdown(self):
         """Shutdownthe httpbin server."""
@@ -69,11 +66,11 @@ def get_headless_chromium() -> str:
 
     Returns: The path.
     """
-    bin_path = Path(__file__).parent / Path('end2end', 'linux', 'headless-chromium')
+    bin_path = Path(__file__).parent / Path("end2end", "linux", "headless-chromium")
 
     if not bin_path.exists():
-        zip_path = bin_path.with_suffix('.zip')
-        print(f'Unzipping {zip_path}')
+        zip_path = bin_path.with_suffix(".zip")
+        print(f"Unzipping {zip_path}")
         shutil.unpack_archive(str(zip_path), bin_path.parent)
         os.chmod(bin_path, 0o755)
 
@@ -101,7 +98,7 @@ class Proxy:
     server.
     """
 
-    def __init__(self, port: int = 8086, mode: str = 'http', auth: str = ''):
+    def __init__(self, port: int = 8086, mode: str = "http", auth: str = ""):
         """Create a new mitmdump proxy server.
 
         Args:
@@ -111,33 +108,33 @@ class Proxy:
             auth: When supplied, proxy authentication will be enabled.
                 The value should be a string in the format: 'username:password'
         """
-        assert mode in ('http', 'socks'), "mode must be one of 'http' or 'socks'"
+        assert mode in ("http", "socks"), "mode must be one of 'http' or 'socks'"
 
         mode_map = {
-            'http': 'regular',
-            'socks': 'socks5',
+            "http": "regular",
+            "socks": "socks5",
         }
 
-        auth_args = ['--set', f'proxyauth={auth}'] if auth else []
+        auth_args = ["--set", f"proxyauth={auth}"] if auth else []
 
         message = f"This passed through a {'authenticated ' if auth else ''}{mode} proxy"
 
         self.proc = subprocess.Popen(
             [
-                'mitmdump',
-                '--listen-port',
-                f'{port}',
-                '--set',
-                f'mode={mode_map[mode]}',
-                '--set',
-                'flow_detail=0',
-                '--set',
-                'ssl_insecure',
+                "mitmdump",
+                "--listen-port",
+                f"{port}",
+                "--set",
+                f"mode={mode_map[mode]}",
+                "--set",
+                "flow_detail=0",
+                "--set",
+                "ssl_insecure",
                 *auth_args,
-                '-s',
-                Path(__file__).parent / 'inject_message.py',
-                '--set',
-                f'message={message}',
+                "-s",
+                Path(__file__).parent / "inject_message.py",
+                "--set",
+                f"message={message}",
             ],
             bufsize=0,
             stdout=subprocess.PIPE,
@@ -147,16 +144,16 @@ class Proxy:
         try:
             self.proc.wait(timeout=2)
             # If we're here, wait() has returned meaning no process
-            raise RuntimeError(f'Proxy server failed to start: {self.proc.stderr.read().decode()}')
+            raise RuntimeError(f"Proxy server failed to start: {self.proc.stderr.read().decode()}")
         except subprocess.TimeoutExpired:
             # Server running
             if auth:
-                auth = f'{auth}@'
-            if mode == 'http':
-                self.url = f'https://{auth}localhost:{port}'
+                auth = f"{auth}@"
+            if mode == "http":
+                self.url = f"https://{auth}localhost:{port}"
             else:
-                self.url = f'socks5://{auth}localhost:{port}'
-            print(f'Created new proxy server at {self.url}')
+                self.url = f"socks5://{auth}localhost:{port}"
+            print(f"Created new proxy server at {self.url}")
 
     def shutdown(self):
         """Shutdown the proxy server."""

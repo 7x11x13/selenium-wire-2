@@ -1,33 +1,32 @@
+import asyncio
 import logging
 import threading
 
-from seleniumwire.server import MitmProxy
+from seleniumwire.server import MitmProxy, SeleniumWireOptions
 
 log = logging.getLogger(__name__)
 
 
-def create(addr='127.0.0.1', port=0, options=None):
+def create(options: SeleniumWireOptions = SeleniumWireOptions()):
     """Create a new proxy backend.
 
     Args:
-        addr: The address the proxy server will listen on. Default 127.0.0.1.
-        port: The port the proxy server will listen on. Default 0 - which means
-            use the first available port.
-        options: Additional options to configure the proxy.
+        options: Options to configure the proxy.
 
     Returns:
         An instance of the proxy backend.
     """
-    if options is None:
-        options = {}
+    backend = MitmProxy(options)
 
-    backend = MitmProxy(addr, port, options)
-
-    t = threading.Thread(name='Selenium Wire Proxy Server', target=backend.serve_forever)
-    t.daemon = not options.get('standalone')
+    t = threading.Thread(
+        name="Selenium Wire Proxy Server", target=backend.serve_forever, daemon=not options.standalone
+    )
     t.start()
 
+    # wait for proxyserver to start
+    asyncio.run(backend.wait_for_proxyserver())
+
     addr, port, *_ = backend.address()
-    log.info('Created proxy listening on %s:%s', addr, port)
+    log.info("Created proxy listening on %s:%s", addr, port)
 
     return backend

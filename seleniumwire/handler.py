@@ -1,13 +1,18 @@
 import logging
 import re
 from datetime import datetime
+from typing import TYPE_CHECKING, Any
+
+from mitmproxy.http import Headers, HTTPFlow
+from mitmproxy.http import Request as MitmRequest
+from mitmproxy.http import Response as MitmResponse
+from mitmproxy.proxy.mode_specs import UpstreamMode
 
 from seleniumwire import har
 from seleniumwire.request import Request, Response, WebSocketMessage
-from seleniumwire.thirdparty.mitmproxy.http import HTTPResponse
-from seleniumwire.thirdparty.mitmproxy.net import websockets
-from seleniumwire.thirdparty.mitmproxy.net.http.headers import Headers
-from seleniumwire.utils import is_list_alike
+
+if TYPE_CHECKING:
+    from seleniumwire.server import MitmProxy
 
 log = logging.getLogger(__name__)
 
@@ -17,32 +22,30 @@ class InterceptRequestHandler:
     and capture.
     """
 
-    def __init__(self, proxy):
+    def __init__(self, proxy: "MitmProxy"):
         self.proxy = proxy
 
-    def requestheaders(self, flow):
+    def requestheaders(self, flow: HTTPFlow):
         # Requests that are being captured are not streamed.
         if self.in_scope(flow.request):
             flow.request.stream = False
 
-    def request(self, flow):
+    def request(self, flow: HTTPFlow):
         if flow.server_conn.via:
-            if flow.server_conn.via.address != self.proxy.master.server.config.upstream_server.address:
-                # If the flow's upstream proxy doesn't match what's currently configured
-                # (which may happen if the proxy configuration has been changed since the
-                # flow was started) we need to tell the client to re-establish a connection.
-                flow.client_conn.finish()
-                return
-
-        # Make any modifications to the original request
-        # DEPRECATED. This will be replaced by request_interceptor
-        self.proxy.modifier.modify_request(flow.request, bodyattr='raw_content')
+            mode = self.proxy.server.mode
+            if isinstance(mode, UpstreamMode):
+                if flow.server_conn.via[1] != mode.address:
+                    # If the flow's upstream proxy doesn't match what's currently configured
+                    # (which may happen if the proxy configuration has been changed since the
+                    # flow was started) we need to tell the client to re-establish a connection.
+                    # flow.client_conn.finish() TODO
+                    return
 
         # Convert to one of our requests for handling
         request = self._create_request(flow)
 
         if not self.in_scope(request):
-            log.debug('Not capturing %s request: %s', request.method, request.url)
+            log.debug("Not capturing %s request: %s", request.method, request.url)
             return
 
         # Call the request interceptor if set
@@ -51,22 +54,23 @@ class InterceptRequestHandler:
 
             if request.response:
                 # The interceptor has created a response for us to send back immediately
-                flow.response = HTTPResponse.make(
+                flow.response = MitmResponse.make(
                     status_code=int(request.response.status_code),
                     content=request.response.body,
-                    headers=[(k.encode('utf-8'), v.encode('utf-8')) for k, v in request.response.headers.items()],
+                    headers=[(k.encode("utf-8"), v.encode("utf-8")) for k, v in request.response.headers.items()],
                 )
             else:
                 flow.request.method = request.method
-                flow.request.url = request.url.replace('wss://', 'https://', 1)
+                flow.request.url = request.url.replace("wss://", "https://", 1)
                 flow.request.headers = self._to_headers_obj(request.headers)
                 flow.request.raw_content = request.body
 
-        log.info('Capturing request: %s', request.url)
+        log.info("Capturing request: %s", request.url)
 
         self.proxy.storage.save_request(request)
 
         if request.id is not None:  # Will not be None when captured
+            assert hasattr(flow.request, "id")
             flow.request.id = request.id
 
         if request.response:
@@ -74,23 +78,21 @@ class InterceptRequestHandler:
             self.proxy.storage.save_response(request.id, request.response)
 
         # Could possibly use mitmproxy's 'anticomp' option instead of this
-        if self.proxy.options.get('disable_encoding') is True:
-            flow.request.headers['Accept-Encoding'] = 'identity'
+        if self.proxy.options.disable_encoding:
+            flow.request.headers["Accept-Encoding"] = "identity"
 
         # Remove legacy header if present
-        if 'Proxy-Connection' in flow.request.headers:
-            del flow.request.headers['Proxy-Connection']
+        if "Proxy-Connection" in flow.request.headers:
+            del flow.request.headers["Proxy-Connection"]
 
-    def in_scope(self, request):
-        if request.method in self.proxy.options.get('ignore_http_methods', ['OPTIONS']):
+    def in_scope(self, request: MitmRequest):
+        if request.method in self.proxy.options.ignore_http_methods:
             return False
 
         scopes = self.proxy.scopes
 
         if not scopes:
             return True
-        elif not is_list_alike(scopes):
-            scopes = [scopes]
 
         for scope in scopes:
             match = re.search(scope, request.url)
@@ -99,17 +101,14 @@ class InterceptRequestHandler:
 
         return False
 
-    def responseheaders(self, flow):
+    def responseheaders(self, flow: HTTPFlow):
         # Responses that are being captured are not streamed.
         if self.in_scope(flow.request):
+            assert flow.response is not None
             flow.response.stream = False
 
-    def response(self, flow):
-        # Make any modifications to the response
-        # DEPRECATED. This will be replaced by response_interceptor
-        self.proxy.modifier.modify_response(flow.response, flow.request)
-
-        if not hasattr(flow.request, 'id'):
+    def response(self, flow: HTTPFlow):
+        if not hasattr(flow.request, "id"):
             # Request was not stored
             return
 
@@ -125,31 +124,26 @@ class InterceptRequestHandler:
             flow.response.headers = self._to_headers_obj(response.headers)
             flow.response.raw_content = response.body
 
-        log.info('Capturing response: %s %s %s', flow.request.url, response.status_code, response.reason)
+        log.info("Capturing response: %s %s %s", flow.request.url, response.status_code, response.reason)
 
         self.proxy.storage.save_response(flow.request.id, response)
 
-        if self.proxy.options.get('enable_har', False):
+        if self.proxy.options.enable_har:
             self.proxy.storage.save_har_entry(flow.request.id, har.create_har_entry(flow))
 
-    def _create_request(self, flow, response=None):
+    def _create_request(self, flow: HTTPFlow, response=None):
         request = Request(
             method=flow.request.method,
             url=flow.request.url,
             headers=[(k, v) for k, v in flow.request.headers.items()],
-            body=flow.request.raw_content,
+            body=flow.request.raw_content or b"",
         )
-
-        # For websocket requests, the scheme of the request is overwritten with https
-        # in the initial CONNECT request so we set the scheme back to wss for capture.
-        if websockets.check_handshake(request.headers) and websockets.check_client_version(request.headers):
-            request.url = request.url.replace('https://', 'wss://', 1)
 
         request.response = response
 
         return request
 
-    def _create_response(self, flow):
+    def _create_response(self, flow: HTTPFlow):
         response = Response(
             status_code=flow.response.status_code,
             reason=flow.response.reason,
@@ -157,41 +151,27 @@ class InterceptRequestHandler:
             body=flow.response.raw_content,
         )
 
-        cert = flow.server_conn.cert
-        if cert is not None:
-            response.cert = dict(
-                subject=cert.subject,
-                serial=cert.serial,
-                key=cert.keyinfo,
-                signature_algorithm=cert.x509.get_signature_algorithm(),
-                expired=cert.has_expired,
-                issuer=cert.issuer,
-                notbefore=cert.notbefore,
-                notafter=cert.notafter,
-                organization=cert.organization,
-                cn=cert.cn,
-                altnames=cert.altnames,
-            )
+        response.certificate_list = list(flow.server_conn.certificate_list)
 
         return response
 
-    def _to_headers_obj(self, headers):
-        return Headers([(k.encode('utf-8'), str(v).encode('utf-8')) for k, v in headers.items()])
+    def _to_headers_obj(self, headers: dict[str, Any]):
+        return Headers([(k.encode("utf-8"), str(v).encode("utf-8")) for k, v in headers.items()])
 
-    def websocket_message(self, flow):
-        if hasattr(flow.handshake_flow.request, 'id'):
-            message = flow.messages[-1]
-            ws_message = WebSocketMessage(
-                from_client=message.from_client,
-                content=message.content,
-                date=datetime.fromtimestamp(message.timestamp),
-            )
+    def websocket_message(self, flow: HTTPFlow):
+        if hasattr(flow.request, "id") and flow.websocket:
+            for message in flow.websocket.messages:
+                ws_message = WebSocketMessage(
+                    from_client=message.from_client,
+                    content=message.content,
+                    date=datetime.fromtimestamp(message.timestamp),
+                )
 
-            self.proxy.storage.save_ws_message(flow.handshake_flow.request.id, ws_message)
+                self.proxy.storage.save_ws_message(flow.request.id, ws_message)
 
-            if message.from_client:
-                direction = '(client -> server)'
-            else:
-                direction = '(server -> client)'
+                if message.from_client:
+                    direction = "(client -> server)"
+                else:
+                    direction = "(server -> client)"
 
-            log.debug('Capturing websocket message %s: %s', direction, ws_message)
+                log.debug("Capturing websocket message %s: %s", direction, ws_message)

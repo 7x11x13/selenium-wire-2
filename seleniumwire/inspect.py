@@ -1,18 +1,21 @@
 import inspect
 import time
-from typing import Iterator, List, Optional, Union
+from typing import Callable, Iterator, Optional, Union
 
 from selenium.common.exceptions import TimeoutException
 
 from seleniumwire import har
-from seleniumwire.request import Request
+from seleniumwire.request import Request, Response
+from seleniumwire.server import MitmProxy
 
 
 class InspectRequestsMixin:
     """Mixin class that provides functions to inspect and modify browser requests."""
 
+    backend: MitmProxy
+
     @property
-    def requests(self) -> List[Request]:
+    def requests(self) -> list[Request]:
         """Retrieves the requests made between the browser and server.
 
         Captured requests can be cleared with 'del', e.g:
@@ -80,7 +83,7 @@ class InspectRequestsMixin:
             else:
                 return request
 
-        raise TimeoutException('Timed out after {}s waiting for request matching {}'.format(timeout, pat))
+        raise TimeoutException("Timed out after {}s waiting for request matching {}".format(timeout, pat))
 
     @property
     def har(self) -> str:
@@ -94,172 +97,7 @@ class InspectRequestsMixin:
         return har.generate_har(self.backend.storage.load_har_entries())
 
     @property
-    def header_overrides(self):
-        """The header overrides for outgoing browser requests.
-
-        DEPRECATED. Use request_interceptor and response_interceptor.
-
-        The value of the headers can be a dictionary or list of sublists,
-        with each sublist having two elements - a URL pattern and headers.
-        Where a header in the dictionary exists in the request, the dictionary
-        value will overwrite the one in the request. Where a header in the dictionary
-        does not exist in the request, it will be added to the request as a
-        new header. To filter out a header from the request, set that header
-        in the dictionary to None. Header names are case insensitive.
-        For response headers, prefix the header name with 'response:'.
-
-        For example:
-
-            header_overrides = {
-                'User-Agent': 'Firefox',
-                'response:Cache-Control': 'none'
-            }
-            header_overrides = [
-                ('.*somewhere.com.*', {'User-Agent': 'Firefox', 'response:Cache-Control': 'none'}),
-                ('*.somewhere-else.com.*', {'User-Agent': 'Chrome'})
-            ]
-        """
-        return self.backend.modifier.headers
-
-    @header_overrides.setter
-    def header_overrides(self, headers):
-        if isinstance(headers, list):
-            for _, h in headers:
-                self._validate_headers(h)
-        else:
-            self._validate_headers(headers)
-
-        self.backend.modifier.headers = headers
-
-    def _validate_headers(self, headers):
-        for v in headers.values():
-            if v is not None:
-                assert isinstance(v, str), 'Header values must be strings'
-
-    @header_overrides.deleter
-    def header_overrides(self):
-        del self.backend.modifier.headers
-
-    @property
-    def param_overrides(self):
-        """The parameter overrides for outgoing browser requests.
-
-        DEPRECATED. Use request_interceptor.
-
-        For POST requests, the parameters are assumed to be encoded in the
-        request body.
-
-        The value of the params can be a dictionary or list of sublists,
-        with each sublist having two elements - a URL pattern and params.
-        Where a param in the dictionary exists in the request, the dictionary
-        value will overwrite the one in the request. Where a param in the dictionary
-        does not exist in the request, it will be added to the request as a
-        new param. To filter out a param from the request, set that param
-        in the dictionary to None.
-
-        For example:
-            param_overrides = {'foo': 'bar'}
-            param_overrides = [
-                ('.*somewhere.com.*', {'foo': 'bar'}),
-                ('*.somewhere-else.com.*', {'x': 'y'}),
-            ]
-        """
-        return self.backend.modifier.params
-
-    @param_overrides.setter
-    def param_overrides(self, params):
-        self.backend.modifier.params = params
-
-    @param_overrides.deleter
-    def param_overrides(self):
-        del self.backend.modifier.params
-
-    @property
-    def body_overrides(self):
-        """The body overrides for outgoing browser requests.
-
-        DEPRECATED. Use request_interceptor and response_interceptor.
-
-        For 'not GET' requests, the parameters are assumed to be encoded in the
-        request body.
-
-        The value of the body can be a string value or list of sublists,
-        with each sublist having two elements - a URL pattern and string value.
-        The string value will be encoded, then replace whole http body.
-        And body_overrides has higher priority than param_overrides When they conflict.
-        For example:
-            body_overrides = '{"foo":"bar"}'
-            body_overrides = [
-                ('.*somewhere.com.*', '{"foo":"bar"}'),
-                ('*.somewhere-else.com.*', '{"x":"y"}'),
-            ]
-        """
-        return self.backend.modifier.bodies
-
-    @body_overrides.setter
-    def body_overrides(self, bodies):
-        self.backend.modifier.bodies = bodies
-
-    @body_overrides.deleter
-    def body_overrides(self):
-        del self.backend.modifier.bodies
-
-    @property
-    def querystring_overrides(self):
-        """The querystring overrides for outgoing browser requests.
-
-        DEPRECATED. Use request_interceptor.
-
-        The value of the querystring override can be a string or a list of sublists,
-        with each sublist having two elements, a URL pattern and the querystring.
-        The querystring override will overwrite the querystring in the request
-        or will be added to the request if the request has no querystring. To
-        remove a querystring from the request, set the value to empty string.
-
-        For example:
-            querystring_overrides = 'foo=bar&x=y'
-            querystring_overrides = [
-                ('.*somewhere.com.*', 'foo=bar&x=y'),
-                ('*.somewhere-else.com.*', 'a=b&c=d'),
-            ]
-        """
-        return self.backend.modifier.querystring
-
-    @querystring_overrides.setter
-    def querystring_overrides(self, querystrings):
-        self.backend.modifier.querystring = querystrings
-
-    @querystring_overrides.deleter
-    def querystring_overrides(self):
-        del self.backend.modifier.querystring
-
-    @property
-    def rewrite_rules(self):
-        """The rules used to rewrite request URLs.
-
-        DEPRECATED. Use request_interceptor.
-
-        The value of the rewrite rules should be a list of sublists (or tuples)
-        with each sublist containing the pattern and replacement.
-
-        For example:
-            rewrite_rules = [
-                (r'(https?://)www.google.com/', r'\1www.bing.com/'),
-                (r'https://docs.python.org/2/', r'https://docs.python.org/3/'),
-            ]
-        """
-        return self.backend.modifier.rewrite_rules
-
-    @rewrite_rules.setter
-    def rewrite_rules(self, rewrite_rules):
-        self.backend.modifier.rewrite_rules = rewrite_rules
-
-    @rewrite_rules.deleter
-    def rewrite_rules(self):
-        del self.backend.modifier.rewrite_rules
-
-    @property
-    def scopes(self) -> List[str]:
+    def scopes(self) -> list[str]:
         """The URL patterns used to scope request capture.
 
         The value of the scopes should be a list (or tuple) of
@@ -274,7 +112,7 @@ class InspectRequestsMixin:
         return self.backend.scopes
 
     @scopes.setter
-    def scopes(self, scopes: List[str]):
+    def scopes(self, scopes: list[str]):
         self.backend.scopes = scopes
 
     @scopes.deleter
@@ -282,7 +120,7 @@ class InspectRequestsMixin:
         self.backend.scopes = []
 
     @property
-    def request_interceptor(self) -> callable:
+    def request_interceptor(self) -> Callable[[Request], None]:
         """A callable that will be used to intercept/modify requests.
 
         The callable must accept a single argument for the request
@@ -291,7 +129,7 @@ class InspectRequestsMixin:
         return self.backend.request_interceptor
 
     @request_interceptor.setter
-    def request_interceptor(self, interceptor: callable):
+    def request_interceptor(self, interceptor: Callable[[Request], None]):
         self.backend.request_interceptor = interceptor
 
     @request_interceptor.deleter
@@ -299,7 +137,7 @@ class InspectRequestsMixin:
         self.backend.request_interceptor = None
 
     @property
-    def response_interceptor(self) -> callable:
+    def response_interceptor(self) -> Callable[[Request, Response], None]:
         """A callable that will be used to intercept/modify responses.
 
         The callable must accept two arguments: the response being
@@ -308,9 +146,9 @@ class InspectRequestsMixin:
         return self.backend.response_interceptor
 
     @response_interceptor.setter
-    def response_interceptor(self, interceptor: callable):
+    def response_interceptor(self, interceptor: Callable[[Request, Response], None]):
         if len(inspect.signature(interceptor).parameters) != 2:
-            raise RuntimeError('A response interceptor takes two parameters: the request and response')
+            raise RuntimeError("A response interceptor takes two parameters: the request and response")
         self.backend.response_interceptor = interceptor
 
     @response_interceptor.deleter

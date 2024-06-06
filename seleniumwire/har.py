@@ -6,17 +6,17 @@ This code has been taken from the har_dump.py addon in the mitmproxy project.
 import base64
 import json
 from datetime import datetime, timezone
-from typing import List, Set
+
+from mitmproxy.connection import Server
+from mitmproxy.http import HTTPFlow
+from mitmproxy.net.http import cookies
+from mitmproxy.utils import strutils
 
 import seleniumwire
-from seleniumwire.thirdparty.mitmproxy import connections
-from seleniumwire.thirdparty.mitmproxy.http import HTTPFlow
-from seleniumwire.thirdparty.mitmproxy.net.http import cookies
-from seleniumwire.thirdparty.mitmproxy.utils import strutils
 
 # A list of server seen till now is maintained so we can avoid
 # using 'connect' time for entries that use an existing connection.
-SERVERS_SEEN: Set[connections.ServerConnection] = set()
+SERVERS_SEEN: set[Server] = set()
 
 
 def create_har_entry(flow: HTTPFlow) -> dict:
@@ -30,7 +30,10 @@ def create_har_entry(flow: HTTPFlow) -> dict:
     ssl_time = -1
     connect_time = -1
 
+    assert flow.response is not None
+
     if flow.server_conn and flow.server_conn not in SERVERS_SEEN:
+        assert flow.server_conn.timestamp_tcp_setup is not None and flow.server_conn.timestamp_start is not None
         connect_time = flow.server_conn.timestamp_tcp_setup - flow.server_conn.timestamp_start
 
         if flow.server_conn.timestamp_tls_setup is not None:
@@ -44,12 +47,14 @@ def create_har_entry(flow: HTTPFlow) -> dict:
     # and port from the client connection. So, the time spent waiting is actually
     # spent waiting between request.timestamp_end and response.timestamp_start
     # thus it correlates to HAR wait instead.
+    assert flow.request.timestamp_end is not None and flow.request.timestamp_start is not None
+    assert flow.response.timestamp_end is not None and flow.response.timestamp_start is not None
     timings_raw = {
-        'send': flow.request.timestamp_end - flow.request.timestamp_start,
-        'receive': flow.response.timestamp_end - flow.response.timestamp_start,
-        'wait': flow.response.timestamp_start - flow.request.timestamp_end,
-        'connect': connect_time,
-        'ssl': ssl_time,
+        "send": flow.request.timestamp_end - flow.request.timestamp_start,
+        "receive": flow.response.timestamp_end - flow.response.timestamp_start,
+        "wait": flow.response.timestamp_start - flow.request.timestamp_end,
+        "connect": connect_time,
+        "ssl": ssl_time,
     }
 
     # HAR timings are integers in ms, so we re-encode the raw timings to that format.
@@ -66,6 +71,8 @@ def create_har_entry(flow: HTTPFlow) -> dict:
     response_body_decoded_size = len(flow.response.content) if flow.response.content else 0
     response_body_compression = response_body_decoded_size - response_body_size
 
+    req_body_size = len(flow.request.content) if flow.request.content else 0
+
     entry = {
         "startedDateTime": started_date_time,
         "time": full_time,
@@ -77,7 +84,7 @@ def create_har_entry(flow: HTTPFlow) -> dict:
             "headers": _name_value(flow.request.headers),
             "queryString": _name_value(flow.request.query or {}),
             "headersSize": len(str(flow.request.headers)),
-            "bodySize": len(flow.request.content),
+            "bodySize": req_body_size,
         },
         "response": {
             "status": flow.response.status_code,
@@ -88,9 +95,9 @@ def create_har_entry(flow: HTTPFlow) -> dict:
             "content": {
                 "size": response_body_size,
                 "compression": response_body_compression,
-                "mimeType": flow.response.headers.get('Content-Type', ''),
+                "mimeType": flow.response.headers.get("Content-Type", ""),
             },
-            "redirectURL": flow.response.headers.get('Location', ''),
+            "redirectURL": flow.response.headers.get("Location", ""),
             "headersSize": len(str(flow.response.headers)),
             "bodySize": response_body_size,
         },
@@ -99,8 +106,9 @@ def create_har_entry(flow: HTTPFlow) -> dict:
     }
 
     # Store binary data as base64
-    if strutils.is_mostly_bin(flow.response.content):
-        entry["response"]["content"]["text"] = base64.b64encode(flow.response.content).decode()
+    content = flow.response.content or b""
+    if strutils.is_mostly_bin(content):
+        entry["response"]["content"]["text"] = base64.b64encode(content).decode()
         entry["response"]["content"]["encoding"] = "base64"
     else:
         entry["response"]["content"]["text"] = flow.response.get_text(strict=False)
@@ -162,7 +170,7 @@ def _name_value(obj):
     return [{"name": k, "value": v} for k, v in obj.items()]
 
 
-def generate_har(entries: List[dict]) -> str:
+def generate_har(entries: list[dict]) -> str:
     """Generate a HAR as a JSON formatted string.
 
     Args:
