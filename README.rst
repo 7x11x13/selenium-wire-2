@@ -649,7 +649,7 @@ If no upstream proxy config is supplied, seleniumwire uses the ``HTTP_PROXY`` an
 SOCKS Upstream Proxy
 -----
 
-SOCKS upstream proxies are not supported. See <https://github.com/mitmproxy/mitmproxy/issues/211>
+SOCKS upstream proxies are not supported. See https://github.com/mitmproxy/mitmproxy/issues/211
 
 **Using Selenium Wire with Tor**
 
@@ -750,7 +750,7 @@ A summary of all options that can be passed to Selenium Wire via the ``seleniumw
     The maximum number of requests to store when using in-memory storage. Unlimited by default. This option currently has no effect when using the default disk based storage.
 
 ``upstream_proxy``
-    The upstream `proxy server <https://github.com/wkeeling/selenium-wire#Upstream Proxies>`__ configuration if you're using a proxy.
+    The upstream `proxy server <https://github.com/7x11x13/selenium-wire#Upstream Proxies>`__ configuration if you're using a proxy.
 
 ``verify_ssl``
     Whether SSL certificates should be verified. ``False`` by default, which prevents errors with self-signed certificates.
