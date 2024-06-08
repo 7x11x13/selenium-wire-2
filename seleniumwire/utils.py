@@ -21,7 +21,7 @@ def _parse_proxy(url: Optional[str]):
     return ProxyConf(*_urllib_parse_proxy(url))
 
 
-def get_mitm_upstream_proxy_args(upstream_proxy: Optional[ProxyConfig]) -> dict[str, str]:
+def get_mitm_upstream_proxy_args(upstream_proxy: Optional[ProxyConfig]) -> dict:
     """Build the arguments needed to pass an upstream proxy to mitmproxy.
 
     Args:
@@ -47,7 +47,7 @@ def get_mitm_upstream_proxy_args(upstream_proxy: Optional[ProxyConfig]) -> dict[
     else:
         return {MITM_MODE: ["regular"]}
 
-    args = {}
+    args: dict = {}
     scheme, username, password, hostport = conf
     args[MITM_MODE] = [f"upstream:{scheme}://{hostport}"]
     args[MITM_UPSTREAM_AUTH] = None

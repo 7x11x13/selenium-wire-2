@@ -26,10 +26,7 @@ def create(options: SeleniumWireOptions = SeleniumWireOptions()):
     backend = MitmProxy(options, event_loop)
     backend.start()
 
-    address = backend.address
-    if address is None:
-        raise SeleniumWireException("Proxy could not be started")
-    addr, port = address
+    addr, port = backend.address
     log.info("Created proxy listening on %s:%s", addr, port)
 
     return backend

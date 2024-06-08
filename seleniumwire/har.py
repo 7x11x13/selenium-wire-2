@@ -73,7 +73,7 @@ def create_har_entry(flow: HTTPFlow) -> dict:
 
     req_body_size = len(flow.request.content) if flow.request.content else 0
 
-    entry = {
+    entry: dict = {
         "startedDateTime": started_date_time,
         "time": full_time,
         "request": {

@@ -134,7 +134,7 @@ class InspectRequestsMixin:
         self.backend.exclude_urls = new_exclude_urls
 
     @property
-    def request_interceptor(self) -> Callable[[Request], None]:
+    def request_interceptor(self) -> Optional[Callable[[Request], None]]:
         """A callable that will be used to intercept/modify requests.
 
         The callable must accept a single argument for the request
@@ -143,7 +143,7 @@ class InspectRequestsMixin:
         return self.backend.request_interceptor
 
     @request_interceptor.setter
-    def request_interceptor(self, interceptor: Callable[[Request], None]):
+    def request_interceptor(self, interceptor: Optional[Callable[[Request], None]]):
         self.backend.request_interceptor = interceptor
 
     @request_interceptor.deleter
@@ -151,7 +151,7 @@ class InspectRequestsMixin:
         self.backend.request_interceptor = None
 
     @property
-    def response_interceptor(self) -> Callable[[Request, Response], None]:
+    def response_interceptor(self) -> Optional[Callable[[Request, Response], None]]:
         """A callable that will be used to intercept/modify responses.
 
         The callable must accept two arguments: the response being
@@ -160,8 +160,8 @@ class InspectRequestsMixin:
         return self.backend.response_interceptor
 
     @response_interceptor.setter
-    def response_interceptor(self, interceptor: Callable[[Request, Response], None]):
-        if len(inspect.signature(interceptor).parameters) != 2:
+    def response_interceptor(self, interceptor: Optional[Callable[[Request, Response], None]]):
+        if len(inspect.signature(interceptor).parameters) != 2:  # type: ignore
             raise RuntimeError("A response interceptor takes two parameters: the request and response")
         self.backend.response_interceptor = interceptor
 

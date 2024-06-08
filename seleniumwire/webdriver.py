@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Protocol
 
 from selenium.webdriver import Chrome as _Chrome
 from selenium.webdriver import ChromeOptions, DesiredCapabilities
@@ -13,6 +13,13 @@ from selenium.webdriver.common.proxy import Proxy
 from seleniumwire import backend, utils
 from seleniumwire.inspect import InspectRequestsMixin
 from seleniumwire.options import ProxyConfig, SeleniumWireOptions
+from seleniumwire.server import MitmProxy
+
+
+class WebDriverProtocol(Protocol):
+    backend: MitmProxy
+
+    def refresh(self) -> None: ...
 
 
 class DriverCommonMixin:
@@ -28,7 +35,7 @@ class DriverCommonMixin:
 
         addr, port = utils.urlsafe_address(self.backend.address)
 
-        config = {
+        config: dict = {
             "proxy": {
                 "proxyType": "manual",
                 "httpProxy": "{}:{}".format(addr, port),
@@ -48,12 +55,12 @@ class DriverCommonMixin:
         self.backend.shutdown()
         super().quit()
 
-    def remove_upstream_proxy(self):
+    def remove_upstream_proxy(self: WebDriverProtocol):
         """Remove upstream proxy"""
         self.backend.update_server_mode(None)
         self.refresh()
 
-    def set_upstream_proxy(self, proxy_config: ProxyConfig):
+    def set_upstream_proxy(self: WebDriverProtocol, proxy_config: ProxyConfig):
         """Change the upstream proxy configuration.
 
         webdriver.set_upstream_proxy(

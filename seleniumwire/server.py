@@ -10,6 +10,7 @@ from mitmproxy.options import Options
 from mitmproxy.proxy.mode_servers import ServerInstance
 
 from seleniumwire import storage
+from seleniumwire.exceptions import SeleniumWireException
 from seleniumwire.handler import InterceptRequestHandler
 from seleniumwire.options import ProxyConfig, SeleniumWireOptions
 from seleniumwire.request import Request, Response
@@ -17,10 +18,11 @@ from seleniumwire.utils import get_mitm_upstream_proxy_args
 
 logger = logging.getLogger(__name__)
 
+
 class MitmProxy:
     """Run and manage a mitmproxy server instance."""
 
-    def __init__(self, options: SeleniumWireOptions, event_loop: asyncio.AbstractEventLoop = None):
+    def __init__(self, options: SeleniumWireOptions, event_loop: Optional[asyncio.AbstractEventLoop] = None):
 
         if event_loop is None:
             event_loop = asyncio.get_running_loop()
@@ -101,7 +103,7 @@ class MitmProxy:
         ):
             await asyncio.sleep(0.01)
 
-    def update_server_mode(self, proxy_conf: ProxyConfig):
+    def update_server_mode(self, proxy_conf: Optional[ProxyConfig]):
         # save mitmproxy listen address
         host, port, *_ = self.address
         # shutdown mitmproxy
@@ -121,14 +123,14 @@ class MitmProxy:
         asyncio.run(self._wait_for_proxyserver())
 
     @property
-    def address(self) -> Optional[Address]:
+    def address(self) -> Address:
         """Get a tuple of the address and port the proxy server
         is listening on.
         """
         try:
             return self.master.addons.get("proxyserver").listen_addrs()[0]
         except IndexError:
-            return None
+            raise SeleniumWireException("Proxy is not running")
 
     def _shutdown_mitmproxy(self):
         self.master.shutdown()

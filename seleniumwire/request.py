@@ -39,7 +39,7 @@ class Request:
         for k, v in headers:
             self.headers.add_header(k, v)
 
-        self.body = body
+        self._body = body
         self.response: Optional[Response] = None
         self.date: datetime = datetime.now()
         self.ws_messages: list[WebSocketMessage] = []
@@ -123,6 +123,12 @@ class Request:
         """
         return urlsplit(self.url).path
 
+    @path.setter
+    def path(self, p: str):
+        parts = list(urlsplit(self.url))
+        parts[2] = p
+        self.url = urlunsplit(parts)
+
     @property
     def host(self) -> str:
         """Get the request host.
@@ -130,12 +136,6 @@ class Request:
         Returns: The request host.
         """
         return urlsplit(self.url).netloc
-
-    @path.setter
-    def path(self, p: str):
-        parts = list(urlsplit(self.url))
-        parts[2] = p
-        self.url = urlunsplit(parts)
 
     def create_response(
         self,
@@ -154,7 +154,7 @@ class Request:
 
         self.response = Response(status_code=status_code, reason=reason, headers=headers, body=body)
 
-    def abort(self, error_code: int = HTTPStatus.FORBIDDEN):
+    def abort(self, error_code: HTTPStatus = HTTPStatus.FORBIDDEN):
         """Convenience method for signalling that this request is to be terminated
         with a specific error code.
         """
@@ -186,7 +186,7 @@ class Response:
         for k, v in headers:
             self.headers.add_header(k, v)
 
-        self.body = body
+        self._body = body
         self.date: datetime = datetime.now()
         self.certificate_list: list[Cert] = []
 
