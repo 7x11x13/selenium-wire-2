@@ -2,24 +2,28 @@ from datetime import datetime
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+from mitmproxy.flow import Flow
 from mitmproxy.proxy.mode_specs import UpstreamMode
 
 from seleniumwire import Cert, Headers
 from seleniumwire.handler import InterceptRequestHandler
 from seleniumwire.options import SeleniumWireOptions
 from seleniumwire.request import WebSocketMessage
+from seleniumwire.server import MitmProxy
 
 
 class InterceptRequestHandlerTest(TestCase):
     def setUp(self):
         self.proxy = Mock()
         self.proxy.options = SeleniumWireOptions()
-        self.proxy.scopes = []
         self.proxy.request_interceptor = None
         self.proxy.response_interceptor = None
+        self.proxy.include_urls = []
+        self.proxy.exclude_urls = []
         self.handler = InterceptRequestHandler(self.proxy)
         self.mock_flow = Mock()
         self.mock_flow.server_conn.via = None
+        self.mock_flow.server_conn.certificate_list = []
 
     def test_save_request(self):
         self.mock_flow.request.url = "http://somewhere.com/some/path"
@@ -135,7 +139,7 @@ class InterceptRequestHandlerTest(TestCase):
         self.mock_flow.request.headers = Headers([(b"Accept-Encoding", b"identity")])
         self.mock_flow.request.raw_content = b"foobar"
 
-        self.proxy.scopes = ["https://server1.*"]
+        self.proxy.include_urls = ["https://server1.*"]
 
         # self.handler.requestheaders(self.mock_flow)
         self.handler.request(self.mock_flow)
@@ -158,7 +162,7 @@ class InterceptRequestHandlerTest(TestCase):
         self.mock_flow.request.url = "https://server2/some/path"
         self.mock_flow.request.stream = True
 
-        self.proxy.scopes = ["https://server1.*"]
+        self.proxy.include_urls = ["https://server1.*"]
 
         self.handler.requestheaders(self.mock_flow)
 
@@ -168,7 +172,7 @@ class InterceptRequestHandlerTest(TestCase):
         self.mock_flow.request.url = "https://server2/some/path"
         self.mock_flow.response.stream = True
 
-        self.proxy.scopes = ["https://server1.*"]
+        self.proxy.include_urls = ["https://server1.*"]
 
         self.handler.responseheaders(self.mock_flow)
 
@@ -288,13 +292,3 @@ class InterceptRequestHandlerTest(TestCase):
 
         self.proxy.storage.save_har_entry.assert_not_called()
         mock_har.create_har_entry.assert_not_called()
-
-    def test_mismatched_upstream_proxy(self):
-        self.mock_flow.server_conn.via = ("http", ("localhost", 8081))
-        self.proxy.server.mode = Mock(UpstreamMode)
-        self.proxy.server.mode.address = ("localhost", 8082)
-
-        self.handler.request(self.mock_flow)
-
-        # self.mock_flow.client_conn.finish.assert_called_once_with()
-        self.proxy.storage.save_request.assert_not_called()

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from mitmproxy.http import Headers, HTTPFlow
 from mitmproxy.http import Request as MitmRequest
 from mitmproxy.http import Response as MitmResponse
-from mitmproxy.proxy.mode_specs import UpstreamMode
 
 from seleniumwire import har
 from seleniumwire.request import Request, Response, WebSocketMessage
@@ -31,16 +30,6 @@ class InterceptRequestHandler:
             flow.request.stream = False
 
     def request(self, flow: HTTPFlow):
-        if flow.server_conn.via:
-            mode = self.proxy.server.mode
-            if isinstance(mode, UpstreamMode):
-                if flow.server_conn.via[1] != mode.address:
-                    # If the flow's upstream proxy doesn't match what's currently configured
-                    # (which may happen if the proxy configuration has been changed since the
-                    # flow was started) we need to tell the client to re-establish a connection.
-                    # flow.client_conn.finish() TODO
-                    return
-
         # Convert to one of our requests for handling
         request = self._create_request(flow)
 

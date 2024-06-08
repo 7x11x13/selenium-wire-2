@@ -89,26 +89,33 @@ class InspectRequestsMixinTest(TestCase):
             ]
         )
 
-    def test_set_scopes(self):
+    def test_set_include_urls(self):
         scopes = [".*stackoverflow.*", ".*github.*"]
 
-        self.driver.scopes = scopes
+        self.driver.include_urls = scopes
 
-        self.assertEqual(scopes, self.mock_backend.scopes)
+        self.assertEqual(scopes, self.mock_backend.include_urls)
 
-    def test_delete_scopes(self):
-        self.mock_backend.scopes = [".*stackoverflow.*", ".*github.*"]
-
-        del self.driver.scopes
-
-        self.assertEqual([], self.mock_backend.scopes)
-
-    def test_get_scopes(self):
+    def test_get_include_urls(self):
         scopes = [".*stackoverflow.*", ".*github.*"]
 
-        self.mock_backend.scopes = scopes
+        self.mock_backend.include_urls = scopes
 
-        self.assertEqual(scopes, self.driver.scopes)
+        self.assertEqual(scopes, self.driver.include_urls)
+
+    def test_set_exclude_urls(self):
+        scopes = [".*stackoverflow.*", ".*github.*"]
+
+        self.driver.exclude_urls = scopes
+
+        self.assertEqual(scopes, self.mock_backend.exclude_urls)
+
+    def test_get_exclude_urls(self):
+        scopes = [".*stackoverflow.*", ".*github.*"]
+
+        self.mock_backend.exclude_urls = scopes
+
+        self.assertEqual(scopes, self.driver.exclude_urls)
 
     def test_set_request_interceptor(self):
         def interceptor(r):

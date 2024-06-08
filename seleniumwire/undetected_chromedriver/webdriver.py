@@ -49,7 +49,7 @@ class Chrome(InspectRequestsMixin, DriverCommonMixin, uc.Chrome):
 
         # We need to point Chrome back to Selenium Wire since the executable
         # will be started separately by undetected_chromedriver.
-        addr, port = urlsafe_address(self.backend.address())
+        addr, port = urlsafe_address(self.backend.address)
         chrome_options.add_argument(f"--proxy-server={addr}:{port}")
         chrome_options.add_argument(
             f"--proxy-bypass-list={','.join(seleniumwire_options.exclude_hosts + ['<-loopback>'])}"

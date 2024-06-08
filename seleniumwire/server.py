@@ -3,6 +3,7 @@ import logging
 from typing import Callable, Iterable, Optional
 
 from mitmproxy import addons
+from mitmproxy.addons.proxyserver import Proxyserver
 from mitmproxy.connection import Address
 from mitmproxy.master import Master
 from mitmproxy.options import Options
@@ -10,17 +11,22 @@ from mitmproxy.proxy.mode_servers import ServerInstance
 
 from seleniumwire import storage
 from seleniumwire.handler import InterceptRequestHandler
-from seleniumwire.options import SeleniumWireOptions
+from seleniumwire.options import ProxyConfig, SeleniumWireOptions
 from seleniumwire.request import Request, Response
 from seleniumwire.utils import get_mitm_upstream_proxy_args
 
 logger = logging.getLogger(__name__)
 
-
 class MitmProxy:
     """Run and manage a mitmproxy server instance."""
 
-    def __init__(self, options: SeleniumWireOptions):
+    def __init__(self, options: SeleniumWireOptions, event_loop: asyncio.AbstractEventLoop = None):
+
+        if event_loop is None:
+            event_loop = asyncio.get_running_loop()
+
+        self.event_loop = event_loop
+
         self.options = options
 
         # Used to stored captured requests
@@ -33,17 +39,21 @@ class MitmProxy:
         self.request_interceptor: Optional[Callable[[Request], None]] = None
         self.response_interceptor: Optional[Callable[[Request, Response], None]] = None
 
-        self._event_loop = asyncio.new_event_loop()
+        if options.disable_capture:
+            self.include_urls = []
+            self.exclude_urls = [".*"]
 
+        self._init_master()
+
+    def _init_master(self):
         mitmproxy_opts = Options()
 
-        self.master = Master(
-            mitmproxy_opts,
-            event_loop=self._event_loop,
-        )
+        self.master = Master(mitmproxy_opts, event_loop=self.event_loop)
         self.master.addons.add(*addons.default_addons())
         self.master.addons.add(SendToLogger())
         self.master.addons.add(InterceptRequestHandler(self))
+
+        options = self.options
 
         mitmproxy_opts.update(
             confdir=self.storage.home_dir,
@@ -54,10 +64,6 @@ class MitmProxy:
             # mitm_options are passed through to mitmproxy
             **options.mitm_options,
         )
-
-        if options.disable_capture:
-            self.include_urls = []
-            self.exclude_urls = [".*"]
 
     @property
     def include_urls(self) -> list[str]:
@@ -82,26 +88,57 @@ class MitmProxy:
             self._exclude_urls = list(new_exclude_urls)
 
     @property
-    def server(self) -> ServerInstance:
-        return next(iter(self.master.addons.get("proxyserver").servers))
+    def server(self) -> Optional[ServerInstance]:
+        servers = list(self.master.addons.get("proxyserver").servers)
+        if servers:
+            return servers[0]
+        else:
+            return None
 
-    async def wait_for_proxyserver(self):
-        while not self.master.addons.get("proxyserver").is_running:
+    async def _wait_for_proxyserver(self):
+        while not (
+            self.master and self.master.addons.get("proxyserver") and self.master.addons.get("proxyserver").is_running
+        ):
             await asyncio.sleep(0.01)
 
-    def serve_forever(self):
-        """Run the server."""
-        asyncio.run(self.master.run())
+    def update_server_mode(self, proxy_conf: ProxyConfig):
+        # save mitmproxy listen address
+        host, port, *_ = self.address
+        # shutdown mitmproxy
+        self._shutdown_mitmproxy()
+        # update proxy options
+        self.options.upstream_proxy = proxy_conf
+        self.options.addr = host
+        self.options.port = port
+        # recreate mitmproxy on same address
+        self._init_master()
+        self.start()
 
-    def address(self) -> Address:
+    def start(self):
+        """Run the server."""
+        asyncio.run_coroutine_threadsafe(self.master.run(), self.event_loop)
+        # wait for proxyserver to start
+        asyncio.run(self._wait_for_proxyserver())
+
+    @property
+    def address(self) -> Optional[Address]:
         """Get a tuple of the address and port the proxy server
         is listening on.
         """
-        return self.master.addons.get("proxyserver").listen_addrs()[0]
+        try:
+            return self.master.addons.get("proxyserver").listen_addrs()[0]
+        except IndexError:
+            return None
+
+    def _shutdown_mitmproxy(self):
+        self.master.shutdown()
+        proxyserver: Proxyserver = self.master.addons.get("proxyserver")
+        future = asyncio.run_coroutine_threadsafe(proxyserver.servers.update([]), self.event_loop)
+        future.result()
 
     def shutdown(self):
         """Shutdown the server and perform any cleanup."""
-        self.master.shutdown()
+        self._shutdown_mitmproxy()
         self.storage.cleanup()
 
     def _get_storage_args(self):

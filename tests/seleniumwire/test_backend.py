@@ -3,6 +3,7 @@ import io
 import json
 import os
 import ssl
+import unittest
 import urllib.error
 import urllib.request
 from unittest import TestCase
@@ -28,10 +29,8 @@ class BackendIntegrationTest(TestCase):
 
     def test_shutdown(self):
         self.backend.shutdown()
-        f = io.StringIO()
-        with contextlib.redirect_stdout(f):
+        with self.assertRaises(urllib.error.URLError):
             self.make_request(f"{self.httpbin}/html")
-        assert "ERROR" in f.getvalue()
 
     def test_get_requests_single(self):
         self.make_request(f"{self.httpbin}/html")
@@ -116,7 +115,7 @@ class BackendIntegrationTest(TestCase):
         self.assertEqual(b"", redirect_request.response.body)
 
     def test_set_single_scopes(self):
-        self.backend.scopes = [f"{self.httpbin}/anything/foo/.*"]
+        self.backend.include_urls = [f"{self.httpbin}/anything/foo/.*"]
 
         self.make_request(f"{self.httpbin}/anything/foo/bar")
 
@@ -131,7 +130,7 @@ class BackendIntegrationTest(TestCase):
         self.assertNotEqual(f"{self.httpbin}/anything/spam/bar", last_request.url)
 
     def test_set_multiples_scopes(self):
-        self.backend.scopes = (f"{self.httpbin}/anything/foo/.*", f"{self.httpbin}/anything/spam/.*")
+        self.backend.include_urls = [f"{self.httpbin}/anything/foo/.*", f"{self.httpbin}/anything/spam/.*"]
 
         self.make_request(f"{self.httpbin}/anything/foo/bar")
         last_request = self.backend.storage.load_last_request()
@@ -246,13 +245,13 @@ class BackendIntegrationTest(TestCase):
         self.assertNotIn("Proxy-Connection", data["headers"])
 
     def test_address(self):
-        self.assertEqual("127.0.0.1", self.backend.address()[0])
-        self.assertIsInstance(self.backend.address()[1], int)
+        self.assertEqual("127.0.0.1", self.backend.address[0])
+        self.assertIsInstance(self.backend.address[1], int)
 
     @classmethod
     def setUpClass(cls):
         cls.backend = backend.create()
-        cls.configure_proxy(*cls.backend.address()[:2])
+        cls.configure_proxy(*cls.backend.address[:2])
         cls.httpbin = testutils.Httpbin() if os.name != "nt" else "https://httpbin.org"
 
     @classmethod

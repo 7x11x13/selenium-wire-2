@@ -26,7 +26,7 @@ class DriverCommonMixin:
             seleniumwire_options,
         )
 
-        addr, port = utils.urlsafe_address(self.backend.address())
+        addr, port = utils.urlsafe_address(self.backend.address)
 
         config = {
             "proxy": {
@@ -50,13 +50,8 @@ class DriverCommonMixin:
 
     def remove_upstream_proxy(self):
         """Remove upstream proxy"""
-        options = self.backend.master.options
-        options.update(
-            **{
-                utils.MITM_MODE: options.default(utils.MITM_MODE),
-                utils.MITM_UPSTREAM_AUTH: options.default(utils.MITM_UPSTREAM_AUTH),
-            }
-        )
+        self.backend.update_server_mode(None)
+        self.refresh()
 
     def set_upstream_proxy(self, proxy_config: ProxyConfig):
         """Change the upstream proxy configuration.
@@ -70,7 +65,8 @@ class DriverCommonMixin:
         Args:
             proxy_config: The proxy configuration.
         """
-        self.backend.master.options.update(**utils.get_mitm_upstream_proxy_args(proxy_config))
+        self.backend.update_server_mode(proxy_config)
+        self.refresh()
 
 
 class Firefox(InspectRequestsMixin, DriverCommonMixin, _Firefox):

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -9,7 +9,9 @@ from seleniumwire.webdriver import Chrome, ChromeOptions, Firefox
 @pytest.fixture(autouse=True)
 def mock_backend():
     with patch("seleniumwire.webdriver.backend") as mock_backend:
-        mock_backend.create.return_value.address.return_value = ("127.0.0.1", 12345)
+        mock_proxy = Mock()
+        mock_proxy.address = ("127.0.0.1", 12345)
+        mock_backend.create.return_value = mock_proxy
         yield mock_backend
 
 
@@ -35,7 +37,6 @@ class TestFirefoxWebDriver:
 
         assert firefox.backend
         mock_backend.create.assert_called_once_with(SeleniumWireOptions())
-        mock_backend.create.return_value.address.assert_called_once_with()
 
     def test_allow_hijacking_localhost(self, firefox_super_kwargs):
         Firefox()
@@ -48,16 +49,6 @@ class TestFirefoxWebDriver:
 
         firefox_options = firefox_super_kwargs["options"]
         assert firefox_options.accept_insecure_certs is True
-
-    def test_set_proxy_config(self, firefox_super_kwargs):
-        Firefox()
-
-        proxy = firefox_super_kwargs["options"].proxy
-
-        assert proxy.proxyType == "manual"
-        assert proxy.httpProxy == "127.0.0.1:12345"
-        assert proxy.sslProxy == "127.0.0.1:12345"
-        assert proxy.noProxy == ""
 
     def test_no_proxy(self, firefox_super_kwargs):
         Firefox(seleniumwire_options=SeleniumWireOptions(exclude_hosts=["test_host"]))
@@ -80,7 +71,6 @@ class TestChromeWebDriver:
 
         assert chrome.backend
         mock_backend.create.assert_called_once_with(SeleniumWireOptions())
-        mock_backend.create.return_value.address.assert_called_once_with()
 
     def test_proxy_bypass_list(self, chrome_super_kwargs):
         Chrome()

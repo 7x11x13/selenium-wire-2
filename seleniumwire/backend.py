@@ -2,6 +2,7 @@ import asyncio
 import logging
 import threading
 
+from seleniumwire.exceptions import SeleniumWireException
 from seleniumwire.server import MitmProxy, SeleniumWireOptions
 
 log = logging.getLogger(__name__)
@@ -16,15 +17,19 @@ def create(options: SeleniumWireOptions = SeleniumWireOptions()):
     Returns:
         An instance of the proxy backend.
     """
-    backend = MitmProxy(options)
 
-    t = threading.Thread(name="Selenium Wire Proxy Server", target=backend.serve_forever, daemon=True)
+    event_loop = asyncio.new_event_loop()
+
+    t = threading.Thread(name="Selenium Wire Proxy Server", target=event_loop.run_forever, daemon=True)
     t.start()
 
-    # wait for proxyserver to start
-    asyncio.run(backend.wait_for_proxyserver())
+    backend = MitmProxy(options, event_loop)
+    backend.start()
 
-    addr, port, *_ = backend.address()
+    address = backend.address
+    if address is None:
+        raise SeleniumWireException("Proxy could not be started")
+    addr, port = address
     log.info("Created proxy listening on %s:%s", addr, port)
 
     return backend

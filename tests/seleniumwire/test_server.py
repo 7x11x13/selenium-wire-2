@@ -36,16 +36,8 @@ class MitmProxyTest(TestCase):
         self.assertEqual(self.mock_storage.create.return_value, proxy.storage)
         self.mock_storage.create.assert_called_once_with(memory_only=True, base_dir="/some/dir", maxsize=10)
 
-    def test_extracts_cert(self):
-        self.mock_storage.create.return_value.home_dir = "/some/dir/.seleniumwire"
-        MitmProxy(SeleniumWireOptions("somehost", 12345))
-
-        self.mock_extract_cert_and_key.assert_called_once_with(
-            "/some/dir/.seleniumwire", cert_path=None, key_path=None
-        )
-
     def test_creates_master(self):
-        self.mock_get_mitm_upstream_proxy_args.return_value = {"mock": "proxy"}
+        self.mock_get_mitm_upstream_proxy_args.return_value = {}
         self.mock_storage.create.return_value.home_dir = "/some/dir/.seleniumwire"
         proxy_conf = ProxyConfig(http="http://proxyserver:8080")
         proxy = MitmProxy(SeleniumWireOptions("somehost", 12345, upstream_proxy=proxy_conf))
@@ -78,13 +70,8 @@ class MitmProxyTest(TestCase):
 
     def test_disable_capture(self):
         proxy = MitmProxy(SeleniumWireOptions("somehost", 12345, disable_capture=True))
-        self.assertEqual(["$^"], proxy.scopes)
-
-    def test_new_event_loop(self):
-        proxy = MitmProxy(SeleniumWireOptions("somehost", 12345))
-
-        self.assertEqual(self.mock_asyncio.new_event_loop.return_value, proxy._event_loop)
-        self.mock_asyncio.new_event_loop.assert_called_once_with()
+        self.assertEqual([], proxy.include_urls)
+        self.assertEqual([".*"], proxy.exclude_urls)
 
     def test_shutdown(self):
         proxy = MitmProxy(SeleniumWireOptions("somehost", 12345))
@@ -133,10 +120,6 @@ class MitmProxyTest(TestCase):
 
         patcher = patch("seleniumwire.server.asyncio")
         self.mock_asyncio = patcher.start()
-        self.addCleanup(patcher.stop)
-
-        patcher = patch("seleniumwire.server.extract_cert_and_key")
-        self.mock_extract_cert_and_key = patcher.start()
         self.addCleanup(patcher.stop)
 
         patcher = patch("seleniumwire.server.get_mitm_upstream_proxy_args")

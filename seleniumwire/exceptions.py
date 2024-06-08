@@ -1,0 +1,2 @@
+class SeleniumWireException(Exception):
+    pass

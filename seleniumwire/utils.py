@@ -45,11 +45,12 @@ def get_mitm_upstream_proxy_args(upstream_proxy: Optional[ProxyConfig]) -> dict[
     elif https_proxy:
         conf = https_proxy
     else:
-        return {}
+        return {MITM_MODE: ["regular"]}
 
     args = {}
     scheme, username, password, hostport = conf
     args[MITM_MODE] = [f"upstream:{scheme}://{hostport}"]
+    args[MITM_UPSTREAM_AUTH] = None
     if username:
         args[MITM_UPSTREAM_AUTH] = f"{username}:{password}"
 

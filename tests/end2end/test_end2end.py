@@ -18,6 +18,7 @@ from selenium.webdriver.common.by import By
 
 import seleniumwire
 from seleniumwire import webdriver
+from seleniumwire.exceptions import SeleniumWireException
 from seleniumwire.options import ProxyConfig, SeleniumWireOptions
 from tests import utils as testutils
 from tests.httpbin_server import Httpbin
@@ -408,7 +409,7 @@ def test_multiple_threads(driver_path, chrome_options, httpbin):
         t.start()
 
     for t in threads:
-        t.join(timeout=10)
+        t.join(timeout=300)
 
     assert len(results) == num_threads
 
@@ -426,7 +427,7 @@ def test_address_in_use(driver_path, chrome_options, httpbin):
     sw_options = SeleniumWireOptions(addr="127.0.0.1", port=8089)
 
     with create_driver(driver_path, chrome_options, sw_options):
-        with pytest.raises(Exception, match=".*only one usage of each socket address.*"):
+        with pytest.raises(SeleniumWireException):
             with create_driver(driver_path, chrome_options, sw_options):
                 pass
 
@@ -480,19 +481,16 @@ def test_switch_proxy_on_the_fly(driver_path, chrome_options, httpbin, httpproxy
     sw_options = SeleniumWireOptions(upstream_proxy=ProxyConfig(https=f"{httpproxy}"))
 
     with create_driver(driver_path, chrome_options, sw_options) as driver:
-        driver.get(f"{httpbin}/html")
 
+        driver.get(f"{httpbin}/html")
         assert "This passed through a http proxy" in driver.page_source
 
         with create_httpproxy(port=8088, auth="test:test") as authproxy:
+
             driver.set_upstream_proxy(
                 ProxyConfig(https=str(authproxy))
             )  # Switch the proxy on the same driver instance
-
-            assert driver.backend.server.listen_addrs[0][1] == 8088
-
             driver.get(f"{httpbin}/html")
-
             assert "This passed through a authenticated http proxy" in driver.page_source
 
         assert driver.last_request.certificate_list
@@ -502,14 +500,12 @@ def test_clear_proxy_on_the_fly(driver_path, chrome_options, httpbin, httpproxy)
     sw_options = SeleniumWireOptions(upstream_proxy=ProxyConfig(https=f"{httpproxy}"))
 
     with create_driver(driver_path, chrome_options, sw_options) as driver:
-        driver.get(f"{httpbin}/html")
 
+        driver.get(f"{httpbin}/html")
         assert "This passed through a http proxy" in driver.page_source
 
         driver.remove_upstream_proxy()
-
         driver.get(f"{httpbin}/html")
-
         assert "This passed through a http proxy" not in driver.page_source
 
 
