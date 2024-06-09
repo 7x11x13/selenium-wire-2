@@ -208,7 +208,7 @@ Selenium Wire has limited support for using the remote webdriver client. When yo
 .. code:: python
 
     options = SeleniumWireOptions(
-        addr=hostname_or_ip  # Address of the machine running Selenium Wire. Explicitly use 127.0.0.1 rather than localhost if remote session is running locally.
+        host=hostname_or_ip  # Address of the machine running Selenium Wire. Explicitly use 127.0.0.1 rather than localhost if remote session is running locally.
     )
     driver = webdriver.Remote(
         command_executor="http://www.example.com",
@@ -707,13 +707,13 @@ All Options
 
 A summary of all options that can be passed to Selenium Wire via the ``seleniumwire_options`` webdriver attribute.
 
-``addr``
+``host``
     The IP address or hostname of the machine running Selenium Wire. This defaults to 127.0.0.1. You may want to change this to the public IP of the machine (or container) if you're using the `remote webdriver`_.
 
 .. code:: python
 
     options = SeleniumWireOptions(
-        addr="192.168.0.10"  # Use the public IP of the machine
+        host="192.168.0.10"  # Use the public IP of the machine
     )
     driver = webdriver.Chrome(seleniumwire_options=options)
 
