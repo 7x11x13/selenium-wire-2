@@ -1,13 +1,15 @@
-from typing import Any, Protocol
+from typing import Protocol, TypedDict
 
 from selenium.webdriver import Chrome as _Chrome
-from selenium.webdriver import ChromeOptions, DesiredCapabilities
+from selenium.webdriver import ChromeOptions
 from selenium.webdriver import Edge as _Edge
 from selenium.webdriver import EdgeOptions
 from selenium.webdriver import Firefox as _Firefox
 from selenium.webdriver import FirefoxOptions
 from selenium.webdriver import Remote as _Remote
 from selenium.webdriver import Safari as _Safari
+from selenium.webdriver import SafariOptions
+from selenium.webdriver.common.options import BaseOptions
 from selenium.webdriver.common.proxy import Proxy
 
 from seleniumwire import backend, utils
@@ -16,16 +18,56 @@ from seleniumwire.options import ProxyConfig, SeleniumWireOptions
 from seleniumwire.server import MitmProxy
 
 
+class Capabilities(TypedDict):
+    proxy: dict
+    acceptInsecureCerts: str
+
+
 class WebDriverProtocol(Protocol):
     backend: MitmProxy
 
     def refresh(self) -> None: ...
 
 
+def _set_options(options: BaseOptions, capabilities: Capabilities):
+    if isinstance(options, ChromeOptions) or isinstance(options, EdgeOptions):
+        # Prevent Chrome from bypassing the Selenium Wire proxy
+        # for localhost addresses.
+        options.add_argument("--proxy-bypass-list=<-loopback>")
+        for key, value in capabilities.items():
+            options.set_capability(key, value)
+    elif isinstance(options, FirefoxOptions):
+        # Prevent Firefox from bypassing the Selenium Wire proxy
+        # for localhost addresses.
+        options.set_preference("network.proxy.allow_hijacking_localhost", True)
+        options.accept_insecure_certs = capabilities["acceptInsecureCerts"]
+        # From Selenium v4.0.0 the browser's proxy settings can no longer
+        # be passed using desired capabilities and we must use the options
+        # object instead.
+        proxy = Proxy()
+        proxy.http_proxy = capabilities["proxy"]["httpProxy"]
+        proxy.ssl_proxy = capabilities["proxy"]["sslProxy"]
+        try:
+            proxy.no_proxy = capabilities["proxy"]["noProxy"]
+        except KeyError:
+            pass
+        options.proxy = proxy
+    elif isinstance(options, SafariOptions):
+        options.accept_insecure_certs = capabilities["acceptInsecureCerts"]
+        # Safari does not support automatic proxy configuration through the
+        # DesiredCapabilities API, and thus has to be configured manually.
+        # Whatever port number is chosen for that manual configuration has to
+        # be passed in the options.
+    else:
+        raise ValueError(f"Unsupported options type: {options.__class__.__name__}")
+
+
 class DriverCommonMixin:
     """Attributes common to all webdriver types."""
 
-    def _setup_backend(self, seleniumwire_options: SeleniumWireOptions) -> dict[str, Any]:
+    def _setup_backend(
+        self: WebDriverProtocol, seleniumwire_options: SeleniumWireOptions, webdriver_options: BaseOptions
+    ):
         """Create the backend proxy server and return its configuration
         in a dictionary.
         """
@@ -33,24 +75,27 @@ class DriverCommonMixin:
             seleniumwire_options,
         )
 
-        addr, port = utils.urlsafe_address(self.backend.address)
+        if seleniumwire_options.auto_config:
+            addr, port = utils.urlsafe_address(self.backend.address)
 
-        config: dict = {
-            "proxy": {
-                "proxyType": "manual",
-                "httpProxy": "{}:{}".format(addr, port),
-                "sslProxy": "{}:{}".format(addr, port),
-            },
-            "acceptInsecureCerts": True,
-        }
+            capabilities: Capabilities = {
+                "proxy": {
+                    "proxyType": "manual",
+                    "httpProxy": "{}:{}".format(addr, port),
+                    "sslProxy": "{}:{}".format(addr, port),
+                },
+                "acceptInsecureCerts": not seleniumwire_options.verify_ssl,
+            }
 
-        if seleniumwire_options.exclude_hosts:
-            # Only pass noProxy when we have a value to pass
-            config["proxy"]["noProxy"] = seleniumwire_options.exclude_hosts
+            if seleniumwire_options.exclude_hosts:
+                # Only pass noProxy when we have a value to pass
+                capabilities["proxy"]["noProxy"] = seleniumwire_options.exclude_hosts
+        else:
+            capabilities = webdriver_options.to_capabilities()
 
-        return config
+        _set_options(webdriver_options, capabilities)
 
-    def quit(self):
+    def quit(self: WebDriverProtocol):
         """Shutdown Selenium Wire and then quit the webdriver."""
         self.backend.shutdown()
         super().quit()
@@ -81,36 +126,10 @@ class Firefox(InspectRequestsMixin, DriverCommonMixin, _Firefox):
 
     def __init__(self, *args, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), **kwargs):
         """Initialise a new Firefox WebDriver instance."""
-        try:
-            firefox_options = kwargs["options"]
-        except KeyError:
-            firefox_options = FirefoxOptions()
-            kwargs["options"] = firefox_options
-
-        # Prevent Firefox from bypassing the Selenium Wire proxy
-        # for localhost addresses.
-        firefox_options.set_preference("network.proxy.allow_hijacking_localhost", True)
-        firefox_options.accept_insecure_certs = True
-
-        config = self._setup_backend(seleniumwire_options)
-
-        if seleniumwire_options.auto_config:
-            # From Selenium v4.0.0 the browser's proxy settings can no longer
-            # be passed using desired capabilities and we must use the options
-            # object instead.
-            proxy = Proxy()
-            proxy.http_proxy = config["proxy"]["httpProxy"]
-            proxy.ssl_proxy = config["proxy"]["sslProxy"]
-
-            try:
-                proxy.no_proxy = config["proxy"]["noProxy"]
-            except KeyError:
-                pass
-
-            firefox_options.proxy = proxy
-
+        options = kwargs.get("options", FirefoxOptions())
+        kwargs["options"] = options
+        self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-
         self.backend.storage.clear_requests()
 
 
@@ -119,82 +138,32 @@ class Chrome(InspectRequestsMixin, DriverCommonMixin, _Chrome):
 
     def __init__(self, *args, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), **kwargs):
         """Initialise a new Chrome WebDriver instance."""
-        try:
-            # Pop-out the chrome_options argument and always use the options
-            # argument to pass to the superclass.
-            chrome_options = kwargs.pop("chrome_options", None) or kwargs["options"]
-        except KeyError:
-            chrome_options = ChromeOptions()
-
-        # Prevent Chrome from bypassing the Selenium Wire proxy
-        # for localhost addresses.
-        chrome_options.add_argument("--proxy-bypass-list=<-loopback>")
-        kwargs["options"] = chrome_options
-
-        config = self._setup_backend(seleniumwire_options)
-
-        if seleniumwire_options.auto_config:
-            try:
-                for key, value in config.items():
-                    chrome_options.set_capability(key, value)
-            except AttributeError:
-                # Earlier versions of the Chromium webdriver API require the
-                # DesiredCapabilities to be explicitly passed.
-                caps = kwargs.setdefault("desired_capabilities", DesiredCapabilities.CHROME.copy())
-                caps.update(config)
-
+        options = kwargs.get("options", ChromeOptions())
+        kwargs["options"] = options
+        self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-
         self.backend.storage.clear_requests()
-
 
 class Safari(InspectRequestsMixin, DriverCommonMixin, _Safari):
     """Extend the Safari webdriver to provide additional methods for inspecting requests."""
 
     def __init__(self, *args, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), **kwargs):
         """Initialise a new Safari WebDriver instance."""
-        # Safari does not support automatic proxy configuration through the
-        # DesiredCapabilities API, and thus has to be configured manually.
-        # Whatever port number is chosen for that manual configuration has to
-        # be passed in the options.
-        self._setup_backend(seleniumwire_options)
-
+        options = kwargs.get("options", SafariOptions())
+        kwargs["options"] = options
+        self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-
         self.backend.storage.clear_requests()
-
 
 class Edge(InspectRequestsMixin, DriverCommonMixin, _Edge):
     """Extend the Edge webdriver to provide additional methods for inspecting requests."""
 
     def __init__(self, *args, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), **kwargs):
         """Initialise a new Edge WebDriver instance."""
-        try:
-            # Pop-out the edge_options argument and always use the options
-            # argument to pass to the superclass.
-            edge_options = kwargs.pop("edge_options", None) or kwargs["options"]
-        except KeyError:
-            edge_options = EdgeOptions()
-
-        # Prevent Edge from bypassing the Selenium Wire proxy
-        # for localhost addresses.
-        edge_options.add_argument("--proxy-bypass-list=<-loopback>")
-        kwargs["options"] = edge_options
-
-        config = self._setup_backend(seleniumwire_options)
-
-        if seleniumwire_options.auto_config:
-            try:
-                for key, value in config.items():
-                    edge_options.set_capability(key, value)
-            except AttributeError:
-                # Earlier versions of the Chromium webdriver API require the
-                # DesiredCapabilities to be explicitly passed.
-                caps = kwargs.setdefault("desired_capabilities", DesiredCapabilities.CHROME.copy())
-                caps.update(config)
-
+        options = kwargs.get("options", EdgeOptions())
+        kwargs["options"] = options
+        self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-
         self.backend.storage.clear_requests()
 
 
@@ -203,19 +172,10 @@ class Remote(InspectRequestsMixin, DriverCommonMixin, _Remote):
 
     def __init__(self, *args, seleniumwire_options: SeleniumWireOptions = SeleniumWireOptions(), **kwargs):
         """Initialise a new Remote WebDriver instance."""
-        config = self._setup_backend(seleniumwire_options)
-
-        if seleniumwire_options.auto_config:
-            capabilities = kwargs.get("desired_capabilities")
-            if capabilities is None:
-                capabilities = DesiredCapabilities.FIREFOX.copy()
-            else:
-                capabilities = capabilities.copy()
-
-            capabilities.update(config)
-
-            kwargs["desired_capabilities"] = capabilities
-
+        try:
+            options = kwargs["options"]
+        except KeyError:
+            raise ValueError("Remote driver must be initialized with 'options' kwarg")
+        self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-
         self.backend.storage.clear_requests()

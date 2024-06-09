@@ -110,6 +110,7 @@ def test_capture_requests(driver, httpbin):
     driver.get(f"{httpbin}/html")
 
     assert driver.requests
+    print([r.response for r in driver.requests])
     assert all(r.response is not None for r in driver.requests)
     del driver.requests
     assert not driver.requests
@@ -371,7 +372,7 @@ def test_no_auto_config_manual_proxy(driver_path, chrome_options, httpbin):
     for k, v in capabilities.items():
         chrome_options.set_capability(k, v)
 
-    sw_options = SeleniumWireOptions(addr="127.0.0.1", port=8088, auto_config=False)
+    sw_options = SeleniumWireOptions(host="127.0.0.1", port=8088, auto_config=False)
 
     with create_driver(driver_path, chrome_options, sw_options) as driver:
 
@@ -424,7 +425,7 @@ def test_ignore_http_methods(driver_path, chrome_options, httpbin):
 
 
 def test_address_in_use(driver_path, chrome_options, httpbin):
-    sw_options = SeleniumWireOptions(addr="127.0.0.1", port=8089)
+    sw_options = SeleniumWireOptions(host="127.0.0.1", port=8089)
 
     with create_driver(driver_path, chrome_options, sw_options):
         with pytest.raises(SeleniumWireException):

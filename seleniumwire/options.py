@@ -10,7 +10,7 @@ class ProxyConfig:
 
 @dataclass
 class SeleniumWireOptions:
-    addr: str = "127.0.0.1"
+    host: str = "127.0.0.1"
     port: int = 0
     auto_config: bool = True
     disable_capture: bool = False

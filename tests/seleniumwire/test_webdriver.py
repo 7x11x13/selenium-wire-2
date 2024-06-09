@@ -113,10 +113,3 @@ class TestChromeWebDriver:
         Chrome(seleniumwire_options=SeleniumWireOptions(auto_config=False), capabilities={"test": "capability"})
 
         assert "proxy" not in chrome_super_kwargs["options"].capabilities
-
-    def test_chrome_options(self, chrome_super_kwargs):
-        options = ChromeOptions()
-        Chrome(chrome_options=options, seleniumwire_options=SeleniumWireOptions())
-
-        assert "chrome_options" not in chrome_super_kwargs
-        assert chrome_super_kwargs["options"] == options

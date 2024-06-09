@@ -4,7 +4,6 @@ import pickle
 import re
 import shutil
 import sys
-import tempfile
 import threading
 import uuid
 from collections import OrderedDict, defaultdict
@@ -60,10 +59,10 @@ class RequestStorage:
 
         Args:
             base_dir: The directory where request and response data is stored.
-                If not specified, the system temp folder is used.
+                If not specified, the user's home folder is used.
         """
         if base_dir is None:
-            base_dir = tempfile.gettempdir()
+            base_dir = os.path.expanduser("~/")
 
         self.home_dir: str = os.path.join(base_dir, ".seleniumwire")
         self.session_dir: str = os.path.join(self.home_dir, "storage-{}".format(str(uuid.uuid4())))
@@ -361,13 +360,13 @@ class InMemoryRequestStorage:
 
         Args:
             base_dir: The directory where certificate data is stored.
-                If not specified, the system temp folder is used.
+                If not specified, the user's home folder is used.
             maxsize: The maximum number of requests to store. Default no limit.
                 When this attribute is set and the storage reaches the specified maximum
                 size, old requests are discarded sequentially as new requests arrive.
         """
         if base_dir is None:
-            base_dir = tempfile.gettempdir()
+            base_dir = os.path.expanduser("~/")
 
         self.home_dir: str = os.path.join(base_dir, ".seleniumwire")
 

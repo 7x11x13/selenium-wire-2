@@ -59,7 +59,7 @@ class MitmProxy:
 
         mitmproxy_opts.update(
             confdir=self.storage.home_dir,
-            listen_host=options.addr,
+            listen_host=options.host,
             listen_port=options.port,
             ssl_insecure=not options.verify_ssl,
             **get_mitm_upstream_proxy_args(self.options.upstream_proxy),
@@ -110,7 +110,7 @@ class MitmProxy:
         self._shutdown_mitmproxy()
         # update proxy options
         self.options.upstream_proxy = proxy_conf
-        self.options.addr = host
+        self.options.host = host
         self.options.port = port
         # recreate mitmproxy on same address
         self._init_master()
