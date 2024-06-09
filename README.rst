@@ -1,5 +1,3 @@
-**Selenium Wire is no longer being maintained. Thank you for your support and all your contributions.**
-
 Selenium Wire
 =============
 
@@ -34,7 +32,7 @@ Simple Example
     driver = webdriver.Chrome()
 
     # Go to the Google home page
-    driver.get('https://www.google.com')
+    driver.get("https://www.google.com")
 
     # Access requests via the `requests` attribute
     for request in driver.requests:
@@ -42,7 +40,7 @@ Simple Example
             print(
                 request.url,
                 request.response.status_code,
-                request.response.headers['Content-Type']
+                request.response.headers["Content-Type"]
             )
 
 Prints:
@@ -71,9 +69,9 @@ Features
 Compatibilty
 ~~~~~~~~~~~~
 
-* Python 3.7+
+* Python 3.10+
 * Selenium 4.0.0+
-* Chrome, Firefox, Edge and Remote Webdriver supported
+* Chrome, Firefox, Edge, Safari, and Remote Webdriver supported
 
 Table of Contents
 ~~~~~~~~~~~~~~~~~
@@ -110,17 +108,15 @@ Table of Contents
 
   * `In-Memory Storage`_
 
-- `Proxies`_
+- `Upstream Proxies`_
 
-  * `SOCKS`_
+  * `SOCKS Upstream Proxy`_
 
   * `Switching Dynamically`_
 
 - `Bot Detection`_
 
 - `Certificates`_
-
-  * `Using Your Own Certificate`_
 
 - `All Options`_
 
@@ -211,11 +207,11 @@ Selenium Wire has limited support for using the remote webdriver client. When yo
 
 .. code:: python
 
-    options = {
-        'addr': 'hostname_or_ip'  # Address of the machine running Selenium Wire. Explicitly use 127.0.0.1 rather than localhost if remote session is running locally.
-    }
+    options = SeleniumWireOptions(
+        addr=hostname_or_ip  # Address of the machine running Selenium Wire. Explicitly use 127.0.0.1 rather than localhost if remote session is running locally.
+    )
     driver = webdriver.Remote(
-        command_executor='http://www.example.com',
+        command_executor="http://www.example.com",
         seleniumwire_options=options
     )
 
@@ -243,7 +239,7 @@ Selenium Wire captures all HTTP/HTTPS traffic made by the browser [1]_. The foll
         button_element.click()
 
         # Wait for the request/response to complete
-        request = driver.wait_for_request('/api/products/12345/')
+        request = driver.wait_for_request("/api/products/12345/")
 
 ``driver.har``
     A JSON formatted HAR archive of HTTP transactions that have taken place. HAR capture is turned off by default and you must set the ``enable_har`` `option`_ to ``True`` before using ``driver.har``.
@@ -275,7 +271,7 @@ Request Objects
 Request objects have the following attributes.
 
 ``body``
-    The request body as ``bytes``. If the request has no body the value of ``body`` will be empty, i.e. ``b''``.
+    The request body as ``bytes``. If the request has no body the value of ``body`` will be empty, i.e. ``b""``.
 
 ``certificate_list``
     Information about the server SSL certificates. Empty for non-HTTPS requests.
@@ -284,7 +280,7 @@ Request objects have the following attributes.
     The datetime the request was made.
 
 ``headers``
-    A dictionary-like object of request headers. Headers are case-insensitive and duplicates are permitted. Asking for ``request.headers['user-agent']`` will return the value of the ``User-Agent`` header. If you wish to replace a header, make sure you delete the existing header first with ``del request.headers['header-name']``, otherwise you'll create a duplicate.
+    A dictionary-like object of request headers. Headers are case-insensitive and duplicates are permitted. Asking for ``request.headers["user-agent"]`` will return the value of the ``User-Agent`` header. If you wish to replace a header, make sure you delete the existing header first with ``del request.headers["header-name"]``, otherwise you'll create a duplicate.
 
 ``host``
     The request host, e.g. ``www.example.com``
@@ -315,7 +311,7 @@ Request objects have the following methods.
 ``abort(error_code=403)``
     Trigger immediate termination of the request with the supplied error code. For use within request interceptors. See `Example: Block a request`_.
 
-``create_response(status_code, headers=(), body=b'')``
+``create_response(status_code, headers=(), body=b"")``
     Create a response and return it without sending any data to the remote server. For use within request interceptors. See `Example: Mock a response`_.
 
 .. _`response object`: #response-objects
@@ -340,20 +336,20 @@ Response Objects
 Response objects have the following attributes.
 
 ``body``
-    The response body as ``bytes``. If the response has no body the value of ``body`` will be empty, i.e. ``b''``. Sometimes the body may have been compressed by the server. You can prevent this with the ``disable_encoding`` `option`_. To manually decode an encoded response body you can do:
+    The response body as ``bytes``. If the response has no body the value of ``body`` will be empty, i.e. ``b""``. Sometimes the body may have been compressed by the server. You can prevent this with the ``disable_encoding`` `option`_. To manually decode an encoded response body you can do:
 
 .. code:: python
 
     from seleniumwire.utils import decode
 
-    body = decode(response.body, response.headers.get('Content-Encoding', 'identity'))
+    body = decode(response.body, response.headers.get("Content-Encoding", "identity"))
 
 
 ``date``
     The datetime the response was received.
 
 ``headers``
-     A dictionary-like object of response headers. Headers are case-insensitive and duplicates are permitted. Asking for ``response.headers['content-length']`` will return the value of the ``Content-Length`` header. If you wish to replace a header, make sure you delete the existing header first with ``del response.headers['header-name']``, otherwise you'll create a duplicate.
+     A dictionary-like object of response headers. Headers are case-insensitive and duplicates are permitted. Asking for ``response.headers["content-length"]`` will return the value of the ``Content-Length`` header. If you wish to replace a header, make sure you delete the existing header first with ``del response.headers["header-name"]``, otherwise you'll create a duplicate.
 
 ``reason``
     The reason phrase, e.g. ``OK`` or ``Not Found`` etc.
@@ -375,7 +371,7 @@ Example: Add a request header
 .. code:: python
 
     def interceptor(request):
-        request.headers['New-Header'] = 'Some Value'
+        request.headers["New-Header"] = "Some Value"
 
     driver.request_interceptor = interceptor
     driver.get(...)
@@ -392,13 +388,13 @@ Duplicate header names are permitted in an HTTP request, so before setting the r
 .. code:: python
 
     def interceptor(request):
-        del request.headers['Referer']  # Remember to delete the header first
-        request.headers['Referer'] = 'some_referer'  # Spoof the referer
+        del request.headers["Referer"]  # Remember to delete the header first
+        request.headers["Referer"] = "some_referer"  # Spoof the referer
 
     driver.request_interceptor = interceptor
     driver.get(...)
 
-    # All requests will now use 'some_referer' for the referer
+    # All requests will now use "some_referer" for the referer
 
 Example: Add a response header
 ------------------------------
@@ -406,8 +402,8 @@ Example: Add a response header
 .. code:: python
 
     def interceptor(request, response):  # A response interceptor takes two args
-        if request.url == 'https://server.com/some/path':
-            response.headers['New-Header'] = 'Some Value'
+        if request.url == "https://server.com/some/path":
+            response.headers["New-Header"] = "Some Value"
 
     driver.response_interceptor = interceptor
     driver.get(...)
@@ -423,7 +419,7 @@ Request parameters work differently to headers in that they are calculated when 
 
     def interceptor(request):
         params = request.params
-        params['foo'] = 'bar'
+        params["foo"] = "bar"
         request.params = params
 
     driver.request_interceptor = interceptor
@@ -439,18 +435,18 @@ Example: Update JSON in a POST request body
     import json
 
     def interceptor(request):
-        if request.method == 'POST' and request.headers['Content-Type'] == 'application/json':
+        if request.method == "POST" and request.headers["Content-Type"] == "application/json":
             # The body is in bytes so convert to a string
-            body = request.body.decode('utf-8')
+            body = request.body.decode("utf-8")
             # Load the JSON
             data = json.loads(body)
             # Add a new property
-            data['foo'] = 'bar'
+            data["foo"] = "bar"
             # Set the JSON back on the request
-            request.body = json.dumps(data).encode('utf-8')
+            request.body = json.dumps(data).encode("utf-8")
             # Update the content length
-            del request.headers['Content-Length']
-            request.headers['Content-Length'] = str(len(request.body))
+            del request.headers["Content-Length"]
+            request.headers["Content-Length"] = str(len(request.body))
 
     driver.request_interceptor = interceptor
     driver.get(...)
@@ -465,14 +461,14 @@ If a site requires a username/password, you can use a request interceptor to add
     import base64
 
     auth = (
-        base64.encodebytes('my_username:my_password'.encode())
+        base64.encodebytes("my_username:my_password".encode())
         .decode()
         .strip()
     )
 
     def interceptor(request):
-        if request.host == 'host_that_needs_auth':
-            request.headers['Authorization'] = f'Basic {auth}'
+        if request.host == "host_that_needs_auth":
+            request.headers["Authorization"] = f"Basic {auth}"
 
     driver.request_interceptor = interceptor
     driver.get(...)
@@ -488,7 +484,7 @@ You can use ``request.abort()`` to block a request and send an immediate respons
 
     def interceptor(request):
         # Block PNG, JPEG and GIF images
-        if request.path.endswith(('.png', '.jpg', '.gif')):
+        if request.path.endswith((".png", ".jpg", ".gif")):
             request.abort()
 
     driver.request_interceptor = interceptor
@@ -504,11 +500,11 @@ You can use ``request.create_response()`` to send a custom reply back to the bro
 .. code:: python
 
     def interceptor(request):
-        if request.url == 'https://server.com/some/path':
+        if request.url == "https://server.com/some/path":
             request.create_response(
                 status_code=200,
-                headers={'Content-Type': 'text/html'},  # Optional headers dictionary
-                body='<html>Hello World!</html>'  # Optional body
+                headers={"Content-Type": "text/html"},  # Optional headers dictionary
+                body="<html>Hello World!</html>"  # Optional body
             )
 
     driver.request_interceptor = interceptor
@@ -533,41 +529,38 @@ Limiting Request Capture
 
 Selenium Wire works by redirecting browser traffic through an internal proxy server it spins up in the background. As requests flow through the proxy they are intercepted and captured. Capturing requests can slow things down a little but there are a few things you can do to restrict what gets captured.
 
-``driver.scopes``
-    This accepts a list of regular expressions that will match the URLs to be captured. It should be set on the driver before making any requests. When empty (the default) all URLs are captured.
+``driver.include_urls`` and ``driver.exclude_urls``
+    TODO This accepts a list of regular expressions that will match the URLs to be captured. It should be set on the driver before making any requests. When empty (the default) all URLs are captured.
 
     .. code:: python
 
-        driver.scopes = [
-            '.*stackoverflow.*',
-            '.*github.*'
+        driver.include_urls = [
+            ".*stackoverflow.*",
+            ".*github.*"
         ]
 
         driver.get(...)  # Start making requests
 
         # Only request URLs containing "stackoverflow" or "github" will now be captured
 
+    .. code:: python
+
+        driver.exclude_urls = [
+            ".*stackoverflow.*",
+            ".*github.*"
+        ]
+
+        driver.get(...)  # Start making requests
+
+        # Only request URLs not containing "stackoverflow" or "github" will now be captured
+
     Note that even if a request is out of scope and not captured, it will still travel through Selenium Wire.
 
 ``seleniumwire_options.disable_capture``
     Use this option to switch off request capture. Requests will still pass through Selenium Wire and through any upstream proxy you have configured but they won't be intercepted or stored. Request interceptors will not execute.
 
-    .. code:: python
-
-        options = {
-            'disable_capture': True  # Don't intercept/store any requests
-        }
-        driver = webdriver.Chrome(seleniumwire_options=options)
-
 ``seleniumwire_options.exclude_hosts``
     Use this option to bypass Selenium Wire entirely. Any requests made to addresses listed here will go direct from the browser to the server without involving Selenium Wire. Note that if you've configured an upstream proxy then these requests will also bypass that proxy.
-
-    .. code:: python
-
-        options = {
-            'exclude_hosts': ['host1.com', 'host2.com']  # Bypass Selenium Wire for these hosts
-        }
-        driver = webdriver.Chrome(seleniumwire_options=options)
 
 ``request.abort()``
     You can abort a request early by using ``request.abort()`` from within a `request interceptor`_. This will send an immediate response back to the client without the request travelling any further. You can use this mechanism to block certain types of requests (e.g. images) to improve page load performance.
@@ -576,7 +569,7 @@ Selenium Wire works by redirecting browser traffic through an internal proxy ser
 
         def interceptor(request):
             # Block PNG, JPEG and GIF images
-            if request.path.endswith(('.png', '.jpg', '.gif')):
+            if request.path.endswith((".png", ".jpg", ".gif")):
                 request.abort()
 
         driver.request_interceptor = interceptor
@@ -592,9 +585,9 @@ Captured requests and responses are stored in the system temp folder by default 
 
 .. code:: python
 
-    options = {
-        'request_storage_base_dir': '/my/storage/folder'  # .seleniumwire will get created here
-    }
+    options = SeleniumWireOptions(
+        request_storage_base_dir="/my/storage/folder"  # .seleniumwire will get created here
+    )
     driver = webdriver.Chrome(seleniumwire_options=options)
 
 In-Memory Storage
@@ -603,25 +596,23 @@ In-Memory Storage
 Selenium Wire also supports storing requests and responses in memory only, which may be useful in certain situations - e.g. if you're running short lived Docker containers and don't want the overhead of disk persistence. You can enable in-memory storage by setting the ``request_storage`` option to ``memory``:
 
 .. code:: python
-
-    options = {
-        'request_storage': 'memory'  # Store requests and responses in memory only
-    }
+    from seleniumwire import SeleniumWireOptions
+    options = SeleniumWireOptions(request_storage="memory")
     driver = webdriver.Chrome(seleniumwire_options=options)
 
 If you're concerned about the amount of memory that may be consumed, you can restrict the number of requests that are stored with the ``request_storage_max_size`` option:
 
 .. code:: python
-
-    options = {
-        'request_storage': 'memory',
-        'request_storage_max_size': 100  # Store no more than 100 requests in memory
-    }
+    from seleniumwire import SeleniumWireOptions
+    options = SeleniumWireOptions(
+        request_storage="memory",
+        request_storage_max_size=100  # Store no more than 100 requests in memory
+    )
     driver = webdriver.Chrome(seleniumwire_options=options)
 
 When the max size is reached, older requests are discarded as newer requests arrive. Keep in mind that if you restrict the number of requests being stored, requests may have disappeared from storage by the time you come to retrieve them with ``driver.requests`` or ``driver.wait_for_request()`` etc.
 
-Proxies
+Upstream Proxies
 ~~~~~~~
 
 If the site you are accessing sits behind a proxy server you can tell Selenium Wire about that proxy server in the options you pass to the webdriver.
@@ -629,51 +620,36 @@ If the site you are accessing sits behind a proxy server you can tell Selenium W
 The configuration takes the following format:
 
 .. code:: python
-
-    options = {
-        'proxy': {
-            'http': 'http://192.168.10.100:8888',
-            'https': 'https://192.168.10.100:8888',
-            'no_proxy': 'localhost,127.0.0.1'
-        }
-    }
+    from seleniumwire import ProxyConfig, SeleniumWireOptions
+    options = SeleniumWireOptions(
+        upstream_proxy=ProxyConfig(
+            http="http://192.168.10.100:8888",
+            https="https://192.168.10.100:8888"
+        )
+    )
     driver = webdriver.Chrome(seleniumwire_options=options)
 
 To use HTTP Basic Auth with your proxy, specify the username and password in the URL:
 
 .. code:: python
-
-    options = {
-        'proxy': {
-            'https': 'https://user:pass@192.168.10.100:8888',
+    from seleniumwire import ProxyConfig, SeleniumWireOptions
+    options = SeleniumWireOptions(
+        upstream_proxy=ProxyConfig(
+            https="https://user:pass@192.168.10.100:8888"
         }
     }
 
-For authentication other than Basic, you can supply the full value for the ``Proxy-Authorization`` header using the ``custom_authorization`` option. For example, if your proxy used the Bearer scheme:
-
-.. code:: python
-
-    options = {
-        'proxy': {
-            'https': 'https://192.168.10.100:8888',  # No username or password used
-            'custom_authorization': 'Bearer mytoken123'  # Custom Proxy-Authorization header value
-        }
-    }
-
-More info on the ``Proxy-Authorization`` header can be found `here <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Proxy-Authorization>`__.
-
-The proxy configuration can also be loaded through environment variables called ``HTTP_PROXY``, ``HTTPS_PROXY`` and ``NO_PROXY``:
+If no upstream proxy config is supplied, seleniumwire uses the ``HTTP_PROXY`` and ``HTTPS_PROXY`` environment variables:
 
 .. code:: bash
 
     $ export HTTP_PROXY="http://192.168.10.100:8888"
     $ export HTTPS_PROXY="https://192.168.10.100:8888"
-    $ export NO_PROXY="localhost,127.0.0.1"
 
-SOCKS
+SOCKS Upstream Proxy
 -----
 
-SOCKS upstream proxy is not supported. See <https://github.com/mitmproxy/mitmproxy/issues/211>
+SOCKS upstream proxies are not supported. See https://github.com/mitmproxy/mitmproxy/issues/211
 
 **Using Selenium Wire with Tor**
 
@@ -682,22 +658,16 @@ See `this example <https://gist.github.com/woswos/38b921f0b82de009c12c6494db3f50
 Switching Dynamically
 ---------------------
 
-If you want to change the proxy settings for an existing driver instance, use the ``driver.proxy`` attribute:
+If you want to change the proxy settings for an existing driver instance, use the ``driver.set_upstream_proxy`` and ``driver.remove_upstream_proxy`` methods:
 
 .. code:: python
 
     driver.get(...)  # Using some initial proxy
 
     # Change the proxy
-    driver.proxy = {
-        'https': 'https://user:pass@192.168.10.100:8888',
-    }
+    driver.set_upstream_proxy(ProxyConfig(https="https://user:pass@192.168.10.100:8888"))
 
     driver.get(...)  # These requests will use the new proxy
-
-To clear a proxy, set ``driver.proxy`` to an empty dict ``{}``.
-
-This mechanism also supports the ``no_proxy`` and ``custom_authorization`` options.
 
 Bot Detection
 ~~~~~~~~~~~~~
@@ -721,8 +691,7 @@ Then in your code, import the ``seleniumwire.undetected_chromedriver`` package:
     chrome_options = uc.ChromeOptions()
 
     driver = uc.Chrome(
-        options=chrome_options,
-        seleniumwire_options={}
+        options=chrome_options
     )
 
 
@@ -731,14 +700,7 @@ Certificates
 
 Selenium Wire uses it's own root certificate to decrypt HTTPS traffic. It is not normally necessary for the browser to trust this certificate because Selenium Wire tells the browser to add it as an exception. This will allow the browser to function normally, but it will display a "Not Secure" message (and/or unlocked padlock) in the address bar. If you wish to get rid of this message you can install the root certificate manually.
 
-You can download the root certificate `here <https://github.com/wkeeling/selenium-wire/raw/master/seleniumwire/ca.crt>`__. Once downloaded, navigate to "Certificates" in your browser settings and import the certificate in the "Authorities" section.
-
-Using Your Own Certificate
---------------------------
-
-If you would like to use your own root certificate you can supply the path to the certificate and the private key using the ``ca_cert`` and ``ca_key`` options.
-
-If you do specify your own certificate, be sure to manually delete Selenium Wire's `temporary storage folder <#request-storage>`_. This will clear out any existing certificates that may have been cached from previous runs.
+TODO https://docs.mitmproxy.org/stable/concepts-certificates/#installing-the-mitmproxy-ca-certificate-manually but replace .mitmproxy with .seleniumwire
 
 All Options
 ~~~~~~~~~~~
@@ -750,157 +712,51 @@ A summary of all options that can be passed to Selenium Wire via the ``seleniumw
 
 .. code:: python
 
-    options = {
-        'addr': '192.168.0.10'  # Use the public IP of the machine
-    }
+    options = SeleniumWireOptions(
+        addr="192.168.0.10"  # Use the public IP of the machine
+    )
     driver = webdriver.Chrome(seleniumwire_options=options)
 
 .. _`remote webdriver`: #creating-the-webdriver
 
+``port``
+    The port number that Selenium Wire's backend listens on. Defaults to 0, which selects an available port automatically.
+
 ``auto_config``
     Whether Selenium Wire should auto-configure the browser for request capture. ``True`` by default.
-
-``ca_cert``
-    The path to a root (CA) certificate if you prefer to use your own certificate rather than use the default.
-
-.. code:: python
-
-    options = {
-        'ca_cert': '/path/to/ca.crt'  # Use own root certificate
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
-``ca_key``
-    The path to the private key if you're using your own root certificate. The key must always be supplied when using your own certificate.
-
-.. code:: python
-
-    options = {
-        'ca_key': '/path/to/ca.key'  # Path to private key
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
 
 ``disable_capture``
     Disable request capture. When ``True`` nothing gets intercepted or stored. ``False`` by default.
 
-.. code:: python
-
-    options = {
-        'disable_capture': True  # Don't intercept/store any requests.
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
 ``disable_encoding``
     Ask the server to send back uncompressed data. ``False`` by default. When ``True`` this sets the ``Accept-Encoding`` header to ``identity`` for all outbound requests. Note that it won't always work - sometimes the server may ignore it.
-
-.. code:: python
-
-    options = {
-        'disable_encoding': True  # Ask the server not to compress the response
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
 
 ``enable_har``
     When ``True`` a HAR archive of HTTP transactions will be kept which can be retrieved with ``driver.har``. ``False`` by default.
 
-.. code:: python
-
-    options = {
-        'enable_har': True  # Capture HAR data, retrieve with driver.har
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
 ``exclude_hosts``
     A list of addresses for which Selenium Wire should be bypassed entirely. Note that if you have configured an upstream proxy then requests to excluded hosts will also bypass that proxy.
 
-.. code:: python
-
-    options = {
-        'exclude_hosts': ['google-analytics.com']  # Bypass these hosts
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
 ``ignore_http_methods``
-    A list of HTTP methods (specified as uppercase strings) that should be ignored by Selenium Wire and not captured. The default is ``['OPTIONS']`` which ignores all OPTIONS requests. To capture all request methods, set ``ignore_http_methods`` to an empty list:
-
-.. code:: python
-
-    options = {
-        'ignore_http_methods': []  # Capture all requests, including OPTIONS requests
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
-``port``
-    The port number that Selenium Wire's backend listens on. You don't normally need to specify a port as a random port number is chosen automatically.
-
-.. code:: python
-
-    options = {
-        'port': 9999  # Tell the backend to listen on port 9999 (not normally necessary to set this)
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
-``proxy``
-    The upstream `proxy server <https://github.com/wkeeling/selenium-wire#proxies>`__ configuration if you're using a proxy.
-
-.. code:: python
-
-    options = {
-        'proxy': {
-            'http': 'http://user:pass@192.168.10.100:8888',
-            'https': 'https://user:pass@192.168.10.100:8889',
-            'no_proxy': 'localhost,127.0.0.1'
-        }
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
+    A list of HTTP methods (specified as uppercase strings) that should be ignored by Selenium Wire and not captured. The default is ``["OPTIONS"]`` which ignores all OPTIONS requests. To capture all request methods, set ``ignore_http_methods`` to an empty list:
 
 ``request_storage``
     The type of storage to use. Selenium Wire defaults to disk based storage, but you can switch to in-memory storage by setting this option to ``memory``:
 
-.. code:: python
-
-    options = {
-        'request_storage': 'memory'  # Store requests and responses in memory only
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
 ``request_storage_base_dir``
     The base location where Selenium Wire stores captured requests and responses when using its default disk based storage. This defaults to the system temp folder (that's ``/tmp`` on Linux and usually ``C:\Users\<username>\AppData\Local\Temp`` on Windows). A sub-folder called ``.seleniumwire`` will get created here to store the captured data.
-
-.. code:: python
-
-    options = {
-        'request_storage_base_dir': '/my/storage/folder'  # .seleniumwire will get created here
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
 
 ``request_storage_max_size``
     The maximum number of requests to store when using in-memory storage. Unlimited by default. This option currently has no effect when using the default disk based storage.
 
-.. code:: python
-
-    options = {
-        'request_storage': 'memory',
-        'request_storage_max_size': 100  # Store no more than 100 requests in memory
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
-
-.. code:: python
-
-    options = {
-        'suppress_connection_errors': False  # Show full tracebacks for any connection errors
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
+``upstream_proxy``
+    The upstream `proxy server <https://github.com/7x11x13/selenium-wire#Upstream Proxies>`__ configuration if you're using a proxy.
 
 ``verify_ssl``
     Whether SSL certificates should be verified. ``False`` by default, which prevents errors with self-signed certificates.
 
-.. code:: python
-
-    options = {
-        'verify_ssl': True  # Verify SSL certificates but beware of errors with self-signed certificates
-    }
-    driver = webdriver.Chrome(seleniumwire_options=options)
+``mitm_options``
+    Dictionary of options to pass to the underlying mitmproxy server. See https://docs.mitmproxy.org/stable/concepts-options/
 
 License
 ~~~~~~~
