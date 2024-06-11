@@ -1,15 +1,11 @@
-import contextlib
-import io
 import json
 import os
 import ssl
-import unittest
 import urllib.error
 import urllib.request
 from unittest import TestCase
 
 from seleniumwire2 import backend
-from tests import utils as testutils
 from tests.httpbin_server import Httpbin
 
 

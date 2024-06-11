@@ -2,14 +2,10 @@ from datetime import datetime
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from mitmproxy.flow import Flow
-from mitmproxy.proxy.mode_specs import UpstreamMode
-
 from seleniumwire2 import Cert, Headers
 from seleniumwire2.handler import InterceptRequestHandler
 from seleniumwire2.options import SeleniumWireOptions
 from seleniumwire2.request import WebSocketMessage
-from seleniumwire2.server import MitmProxy
 
 
 class InterceptRequestHandlerTest(TestCase):

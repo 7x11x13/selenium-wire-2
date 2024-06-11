@@ -2,7 +2,6 @@ import glob
 import os
 import pickle
 import shutil
-import tempfile
 from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from fnmatch import fnmatch
