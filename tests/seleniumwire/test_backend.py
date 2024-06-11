@@ -10,6 +10,7 @@ from unittest import TestCase
 
 from seleniumwire2 import backend
 from tests import utils as testutils
+from tests.httpbin_server import Httpbin
 
 
 class BackendIntegrationTest(TestCase):
@@ -252,7 +253,7 @@ class BackendIntegrationTest(TestCase):
     def setUpClass(cls):
         cls.backend = backend.create()
         cls.configure_proxy(*cls.backend.address[:2])
-        cls.httpbin = testutils.Httpbin() if os.name != "nt" else "https://httpbin.org"
+        cls.httpbin = Httpbin()
 
     @classmethod
     def tearDownClass(cls):
