@@ -3,8 +3,8 @@ import zlib
 from io import BytesIO
 from unittest import TestCase
 
-from seleniumwire.options import ProxyConfig
-from seleniumwire.utils import decode, get_mitm_upstream_proxy_args, urlsafe_address
+from seleniumwire2.options import ProxyConfig
+from seleniumwire2.utils import decode, get_mitm_upstream_proxy_args, urlsafe_address
 
 
 class BuildProxyArgsTest(TestCase):

@@ -1,8 +1,8 @@
 import logging
 from unittest import TestCase
 
-from seleniumwire import webdriver
-from seleniumwire.options import SeleniumWireOptions
+from seleniumwire2 import webdriver
+from seleniumwire2.options import SeleniumWireOptions
 
 logging.basicConfig(level=logging.INFO)
 

@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from seleniumwire.inspect import InspectRequestsMixin, TimeoutException
+from seleniumwire2.inspect import InspectRequestsMixin, TimeoutException
 
 
 class Driver(InspectRequestsMixin):
@@ -70,7 +70,7 @@ class InspectRequestsMixinTest(TestCase):
         self.assertTrue(self.mock_backend.storage.find.call_count > 0)
         self.assertTrue(self.mock_backend.storage.find.call_count <= 5)
 
-    @patch("seleniumwire.inspect.har")
+    @patch("seleniumwire2.inspect.har")
     def test_har(self, mock_har):
         self.mock_backend.storage.load_har_entries.return_value = [
             "test_entry1",

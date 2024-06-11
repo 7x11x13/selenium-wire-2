@@ -9,12 +9,12 @@ from mitmproxy.master import Master
 from mitmproxy.options import Options
 from mitmproxy.proxy.mode_servers import ServerInstance
 
-from seleniumwire import storage
-from seleniumwire.exceptions import SeleniumWireException
-from seleniumwire.handler import InterceptRequestHandler
-from seleniumwire.options import ProxyConfig, SeleniumWireOptions
-from seleniumwire.request import Request, Response
-from seleniumwire.utils import get_mitm_upstream_proxy_args
+from seleniumwire2 import storage
+from seleniumwire2.exceptions import SeleniumWireException
+from seleniumwire2.handler import InterceptRequestHandler
+from seleniumwire2.options import ProxyConfig, SeleniumWireOptions
+from seleniumwire2.request import Request, Response
+from seleniumwire2.utils import get_mitm_upstream_proxy_args
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,7 @@ class MitmProxy:
 
     def _shutdown_mitmproxy(self):
         self.master.shutdown()
-        proxyserver: Proxyserver = self.master.addons.get("proxyserver")
+        proxyserver: Proxyserver = self.master.addons.get("proxyserver")  # type: ignore
         future = asyncio.run_coroutine_threadsafe(proxyserver.servers.update([]), self.event_loop)
         future.result()
 

@@ -8,7 +8,7 @@ import urllib.error
 import urllib.request
 from unittest import TestCase
 
-from seleniumwire import backend
+from seleniumwire2 import backend
 from tests import utils as testutils
 
 

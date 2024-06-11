@@ -10,7 +10,7 @@ from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 from typing import DefaultDict, Iterator, Optional, Union
 
-from seleniumwire.request import Request, Response, WebSocketMessage
+from seleniumwire2.request import Request, Response, WebSocketMessage
 
 log = logging.getLogger(__name__)
 

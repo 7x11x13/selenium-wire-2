@@ -12,7 +12,7 @@ from mitmproxy.http import HTTPFlow
 from mitmproxy.net.http import cookies
 from mitmproxy.utils import strutils
 
-import seleniumwire
+import seleniumwire2
 
 # A list of server seen till now is maintained so we can avoid
 # using 'connect' time for entries that use an existing connection.
@@ -27,8 +27,8 @@ def create_har_entry(flow: HTTPFlow) -> dict:
     Returns: The HAR entry as a dictionary.
     """
     # -1 indicates that these values do not apply to current request
-    ssl_time = -1
-    connect_time = -1
+    ssl_time: float = -1
+    connect_time: float = -1
 
     assert flow.response is not None
 
@@ -122,7 +122,8 @@ def create_har_entry(flow: HTTPFlow) -> dict:
         }
 
     if flow.server_conn.connected:
-        entry["serverIPAddress"] = str(flow.server_conn.ip_address[0])
+        assert flow.server_conn.peername
+        entry["serverIPAddress"] = str(flow.server_conn.peername[0])
 
     return entry
 
@@ -182,8 +183,8 @@ def generate_har(entries: list[dict]) -> str:
             "version": "1.2",
             "creator": {
                 "name": "Selenium Wire HAR dump",
-                "version": seleniumwire.__version__,
-                "comment": f"Selenium Wire version {seleniumwire.__version__}",
+                "version": seleniumwire2.__version__,
+                "comment": f"Selenium Wire version {seleniumwire2.__version__}",
             },
             "entries": entries,
         }

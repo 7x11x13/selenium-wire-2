@@ -5,11 +5,11 @@ from unittest.mock import Mock, patch
 from mitmproxy.flow import Flow
 from mitmproxy.proxy.mode_specs import UpstreamMode
 
-from seleniumwire import Cert, Headers
-from seleniumwire.handler import InterceptRequestHandler
-from seleniumwire.options import SeleniumWireOptions
-from seleniumwire.request import WebSocketMessage
-from seleniumwire.server import MitmProxy
+from seleniumwire2 import Cert, Headers
+from seleniumwire2.handler import InterceptRequestHandler
+from seleniumwire2.options import SeleniumWireOptions
+from seleniumwire2.request import WebSocketMessage
+from seleniumwire2.server import MitmProxy
 
 
 class InterceptRequestHandlerTest(TestCase):
@@ -261,13 +261,13 @@ class InterceptRequestHandlerTest(TestCase):
         """
         self.mock_flow.request = Mock()
 
-        with patch("seleniumwire.handler.hasattr") as mock_hasattr:
+        with patch("seleniumwire2.handler.hasattr") as mock_hasattr:
             mock_hasattr.return_value = False
             self.handler.websocket_message(self.mock_flow)
 
         self.proxy.storage.save_ws_message.assert_not_called()
 
-    @patch("seleniumwire.handler.har")
+    @patch("seleniumwire2.handler.har")
     def test_save_har_entry(self, mock_har):
         self.proxy.options.enable_har = True
         self.mock_flow.request.id = "12345"
@@ -280,7 +280,7 @@ class InterceptRequestHandlerTest(TestCase):
         self.proxy.storage.save_har_entry.assert_called_once_with("12345", {"name": "test_har_entry"})
         mock_har.create_har_entry.assert_called_once_with(self.mock_flow)
 
-    @patch("seleniumwire.handler.har")
+    @patch("seleniumwire2.handler.har")
     def test_save_har_entry_disabled(self, mock_har):
         self.proxy.options.enable_har = False
         self.mock_flow.request.id = "12345"

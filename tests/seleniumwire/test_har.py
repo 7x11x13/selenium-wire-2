@@ -2,8 +2,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
-import seleniumwire
-from seleniumwire.har import create_har_entry, generate_har
+import seleniumwire2
+from seleniumwire2.har import create_har_entry, generate_har
 
 
 def test_create_har_entry():
@@ -51,7 +51,7 @@ def test_create_har_entry():
     mock_flow.response.content = b"helloworld12345"
     mock_flow.response.get_text.return_value = "helloworld12345"
 
-    mock_flow.server_conn.ip_address = ("10.10.10.1",)
+    mock_flow.server_conn.peername = ("10.10.10.1",)
 
     entry = create_har_entry(mock_flow)
 
@@ -107,6 +107,6 @@ def test_generate_har():
     har = json.loads(har)
 
     assert har["log"]["creator"]["name"] == "Selenium Wire HAR dump"
-    assert har["log"]["creator"]["comment"] == f"Selenium Wire version {seleniumwire.__version__}"
+    assert har["log"]["creator"]["comment"] == f"Selenium Wire version {seleniumwire2.__version__}"
     assert len(har["log"]["entries"]) == 2
     assert [e["name"] for e in har["log"]["entries"]] == ["entry1", "entry2"]

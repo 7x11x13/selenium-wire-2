@@ -22,7 +22,9 @@ class HTTPHeaders(HTTPMessage):
 class Request:
     """Represents an HTTP request."""
 
-    def __init__(self, *, method: str, url: str, headers: Iterable[tuple[str, str]], body: bytes = b""):
+    _body: bytes
+
+    def __init__(self, *, method: str, url: str, headers: Iterable[tuple[str, str]], body: bytes | str | None = b""):
         """Initialise a new Request object.
 
         Args:
@@ -39,7 +41,7 @@ class Request:
         for k, v in headers:
             self.headers.add_header(k, v)
 
-        self._body = body
+        self.body = body  # type: ignore
         self.response: Optional[Response] = None
         self.date: datetime = datetime.now()
         self.ws_messages: list[WebSocketMessage] = []
@@ -63,7 +65,7 @@ class Request:
         return self._body
 
     @body.setter
-    def body(self, b: bytes):
+    def body(self, b: bytes | str | None):
         if b is None:
             self._body = b""
         elif isinstance(b, str):
@@ -170,7 +172,11 @@ class Request:
 class Response:
     """Represents an HTTP response."""
 
-    def __init__(self, *, status_code: int, reason: str, headers: Iterable[tuple[str, str]], body: bytes = b""):
+    _body: bytes
+
+    def __init__(
+        self, *, status_code: int, reason: str, headers: Iterable[tuple[str, str]], body: bytes | str | None = b""
+    ):
         """Initialise a new Response object.
 
         Args:
@@ -186,7 +192,7 @@ class Response:
         for k, v in headers:
             self.headers.add_header(k, v)
 
-        self._body = body
+        self.body = body  # type: ignore
         self.date: datetime = datetime.now()
         self.certificate_list: list[Cert] = []
 
@@ -208,7 +214,7 @@ class Response:
         return self._body
 
     @body.setter
-    def body(self, b: bytes):
+    def body(self, b: bytes | str | None):
         if b is None:
             self._body = b""
         elif isinstance(b, str):

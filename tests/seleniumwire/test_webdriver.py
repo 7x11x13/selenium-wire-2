@@ -1,14 +1,15 @@
 from unittest.mock import Mock, patch
 
 import pytest
+from selenium.webdriver.common.proxy import ProxyType
 
-from seleniumwire.options import SeleniumWireOptions
-from seleniumwire.webdriver import Chrome, ChromeOptions, Firefox
+from seleniumwire2.options import SeleniumWireOptions
+from seleniumwire2.webdriver import Chrome, Firefox
 
 
 @pytest.fixture(autouse=True)
 def mock_backend():
-    with patch("seleniumwire.webdriver.backend") as mock_backend:
+    with patch("seleniumwire2.webdriver.backend") as mock_backend:
         mock_proxy = Mock()
         mock_proxy.address = ("127.0.0.1", 12345)
         mock_backend.create.return_value = mock_proxy
@@ -17,7 +18,7 @@ def mock_backend():
 
 @pytest.fixture(autouse=True)
 def firefox_super_kwargs():
-    with patch("seleniumwire.webdriver._Firefox.__init__") as base_init:
+    with patch("seleniumwire2.webdriver._Firefox.__init__") as base_init:
         kwargs = {}
         base_init.side_effect = lambda *a, **k: kwargs.update(k)
         yield kwargs
@@ -25,7 +26,7 @@ def firefox_super_kwargs():
 
 @pytest.fixture(autouse=True)
 def chrome_super_kwargs():
-    with patch("seleniumwire.webdriver._Chrome.__init__") as base_init:
+    with patch("seleniumwire2.webdriver._Chrome.__init__") as base_init:
         kwargs = {}
         base_init.side_effect = lambda *a, **k: kwargs.update(k)
         yield kwargs
@@ -62,7 +63,10 @@ class TestFirefoxWebDriver:
 
     def test_no_auto_config_(self, firefox_super_kwargs):
         Firefox(seleniumwire_options=SeleniumWireOptions(auto_config=False), capabilities={"test": "capability"})
-        assert firefox_super_kwargs["options"].proxy is None
+        assert (
+            firefox_super_kwargs["options"].proxy is None
+            or firefox_super_kwargs["options"].proxy.proxy_type == ProxyType.UNSPECIFIED
+        )
 
 
 class TestChromeWebDriver:

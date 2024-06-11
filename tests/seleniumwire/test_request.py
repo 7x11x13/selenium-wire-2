@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from seleniumwire.request import Request, Response
+from seleniumwire2.request import Request, Response
 
 
 class RequestTest(TestCase):

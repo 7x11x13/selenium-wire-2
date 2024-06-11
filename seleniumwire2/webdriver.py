@@ -12,21 +12,22 @@ from selenium.webdriver import SafariOptions
 from selenium.webdriver.common.options import BaseOptions
 from selenium.webdriver.common.proxy import Proxy
 
-from seleniumwire import backend, utils
-from seleniumwire.inspect import InspectRequestsMixin
-from seleniumwire.options import ProxyConfig, SeleniumWireOptions
-from seleniumwire.server import MitmProxy
+from seleniumwire2 import backend, utils
+from seleniumwire2.inspect import InspectRequestsMixin
+from seleniumwire2.options import ProxyConfig, SeleniumWireOptions
+from seleniumwire2.server import MitmProxy
 
 
 class Capabilities(TypedDict):
     proxy: dict
-    acceptInsecureCerts: str
+    acceptInsecureCerts: bool
 
 
 class WebDriverProtocol(Protocol):
     backend: MitmProxy
 
     def refresh(self) -> None: ...
+    def quit(self) -> None: ...
 
 
 def _set_options(options: BaseOptions, capabilities: Capabilities):
@@ -40,20 +41,29 @@ def _set_options(options: BaseOptions, capabilities: Capabilities):
         # Prevent Firefox from bypassing the Selenium Wire proxy
         # for localhost addresses.
         options.set_preference("network.proxy.allow_hijacking_localhost", True)
-        options.accept_insecure_certs = capabilities["acceptInsecureCerts"]
+        try:
+            options.accept_insecure_certs = capabilities["acceptInsecureCerts"]
+        except KeyError:
+            pass
         # From Selenium v4.0.0 the browser's proxy settings can no longer
         # be passed using desired capabilities and we must use the options
         # object instead.
-        proxy = Proxy()
-        proxy.http_proxy = capabilities["proxy"]["httpProxy"]
-        proxy.ssl_proxy = capabilities["proxy"]["sslProxy"]
         try:
-            proxy.no_proxy = capabilities["proxy"]["noProxy"]
+            proxy = Proxy()
+            proxy.http_proxy = capabilities["proxy"]["httpProxy"]
+            proxy.ssl_proxy = capabilities["proxy"]["sslProxy"]
+            try:
+                proxy.no_proxy = capabilities["proxy"]["noProxy"]
+            except KeyError:
+                pass
         except KeyError:
             pass
         options.proxy = proxy
     elif isinstance(options, SafariOptions):
-        options.accept_insecure_certs = capabilities["acceptInsecureCerts"]
+        try:
+            options.accept_insecure_certs = capabilities["acceptInsecureCerts"]
+        except KeyError:
+            pass
         # Safari does not support automatic proxy configuration through the
         # DesiredCapabilities API, and thus has to be configured manually.
         # Whatever port number is chosen for that manual configuration has to
@@ -98,7 +108,7 @@ class DriverCommonMixin:
     def quit(self: WebDriverProtocol):
         """Shutdown Selenium Wire and then quit the webdriver."""
         self.backend.shutdown()
-        super().quit()
+        super().quit()  # type: ignore
 
     def remove_upstream_proxy(self: WebDriverProtocol):
         """Remove upstream proxy"""
@@ -144,6 +154,7 @@ class Chrome(InspectRequestsMixin, DriverCommonMixin, _Chrome):
         super().__init__(*args, **kwargs)
         self.backend.storage.clear_requests()
 
+
 class Safari(InspectRequestsMixin, DriverCommonMixin, _Safari):
     """Extend the Safari webdriver to provide additional methods for inspecting requests."""
 
@@ -154,6 +165,7 @@ class Safari(InspectRequestsMixin, DriverCommonMixin, _Safari):
         self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
         self.backend.storage.clear_requests()
+
 
 class Edge(InspectRequestsMixin, DriverCommonMixin, _Edge):
     """Extend the Edge webdriver to provide additional methods for inspecting requests."""

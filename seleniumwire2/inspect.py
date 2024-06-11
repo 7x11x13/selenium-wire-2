@@ -4,9 +4,9 @@ from typing import Callable, Iterator, Optional, Union
 
 from selenium.common.exceptions import TimeoutException
 
-from seleniumwire import har
-from seleniumwire.request import Request, Response
-from seleniumwire.server import MitmProxy
+from seleniumwire2 import har
+from seleniumwire2.request import Request, Response
+from seleniumwire2.server import MitmProxy
 
 
 class InspectRequestsMixin:

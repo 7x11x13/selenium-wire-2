@@ -2,7 +2,7 @@ import asyncio
 import logging
 import threading
 
-from seleniumwire.server import MitmProxy, SeleniumWireOptions
+from seleniumwire2.server import MitmProxy, SeleniumWireOptions
 
 log = logging.getLogger(__name__)
 

@@ -20,5 +20,5 @@ multi_line_output = 3
 [tool.mypy]
 disable_error_code = ["import-untyped", "import-not-found"]
 files = [
-    "seleniumwire"
+    "seleniumwire2"
 ]

@@ -26,7 +26,7 @@ Simple Example
 
 .. code:: python
 
-    from seleniumwire import webdriver  # Import from seleniumwire
+    from seleniumwire2 import webdriver  # Import from seleniumwire
 
     # Create a new instance of the Chrome driver
     driver = webdriver.Chrome()
@@ -173,11 +173,11 @@ No installation is required.
 Creating the Webdriver
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Ensure that you import ``webdriver`` from the ``seleniumwire`` package:
+Ensure that you import ``webdriver`` from the ``seleniumwire2`` package:
 
 .. code:: python
 
-    from seleniumwire import webdriver
+    from seleniumwire2 import webdriver
 
 Then just instantiate the webdriver as you would if you were using Selenium directly. You can pass in any desired capabilities or browser specific options - such as the executable path, headless mode etc. Selenium Wire also has it's `own options`_ that can be passed in the ``seleniumwire_options`` attribute.
 
@@ -340,7 +340,7 @@ Response objects have the following attributes.
 
 .. code:: python
 
-    from seleniumwire.utils import decode
+    from seleniumwire2.utils import decode
 
     body = decode(response.body, response.headers.get("Content-Encoding", "identity"))
 
@@ -596,14 +596,14 @@ In-Memory Storage
 Selenium Wire also supports storing requests and responses in memory only, which may be useful in certain situations - e.g. if you're running short lived Docker containers and don't want the overhead of disk persistence. You can enable in-memory storage by setting the ``request_storage`` option to ``memory``:
 
 .. code:: python
-    from seleniumwire import SeleniumWireOptions
+    from seleniumwire2 import SeleniumWireOptions
     options = SeleniumWireOptions(request_storage="memory")
     driver = webdriver.Chrome(seleniumwire_options=options)
 
 If you're concerned about the amount of memory that may be consumed, you can restrict the number of requests that are stored with the ``request_storage_max_size`` option:
 
 .. code:: python
-    from seleniumwire import SeleniumWireOptions
+    from seleniumwire2 import SeleniumWireOptions
     options = SeleniumWireOptions(
         request_storage="memory",
         request_storage_max_size=100  # Store no more than 100 requests in memory
@@ -620,7 +620,7 @@ If the site you are accessing sits behind a proxy server you can tell Selenium W
 The configuration takes the following format:
 
 .. code:: python
-    from seleniumwire import ProxyConfig, SeleniumWireOptions
+    from seleniumwire2 import ProxyConfig, SeleniumWireOptions
     options = SeleniumWireOptions(
         upstream_proxy=ProxyConfig(
             http="http://192.168.10.100:8888",
@@ -632,7 +632,7 @@ The configuration takes the following format:
 To use HTTP Basic Auth with your proxy, specify the username and password in the URL:
 
 .. code:: python
-    from seleniumwire import ProxyConfig, SeleniumWireOptions
+    from seleniumwire2 import ProxyConfig, SeleniumWireOptions
     options = SeleniumWireOptions(
         upstream_proxy=ProxyConfig(
             https="https://user:pass@192.168.10.100:8888"
@@ -668,31 +668,6 @@ If you want to change the proxy settings for an existing driver instance, use th
     driver.set_upstream_proxy(ProxyConfig(https="https://user:pass@192.168.10.100:8888"))
 
     driver.get(...)  # These requests will use the new proxy
-
-Bot Detection
-~~~~~~~~~~~~~
-
-Selenium Wire will integrate with `undetected-chromedriver`_ if it finds it in your environment. This library will transparently modify ChromeDriver to prevent it from triggering anti-bot measures on websites.
-
-.. _`undetected-chromedriver`: https://github.com/ultrafunkamsterdam/undetected-chromedriver
-
-If you wish to take advantage of this make sure you have undetected_chromedriver installed:
-
-.. code:: bash
-
-    pip install undetected-chromedriver
-
-Then in your code, import the ``seleniumwire.undetected_chromedriver`` package:
-
-.. code:: python
-
-    import seleniumwire.undetected_chromedriver as uc
-
-    chrome_options = uc.ChromeOptions()
-
-    driver = uc.Chrome(
-        options=chrome_options
-    )
 
 
 Certificates

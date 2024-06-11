@@ -15,11 +15,12 @@ import pytest
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-import seleniumwire
-from seleniumwire import webdriver
-from seleniumwire.exceptions import SeleniumWireException
-from seleniumwire.options import ProxyConfig, SeleniumWireOptions
+import seleniumwire2
+from seleniumwire2 import webdriver
+from seleniumwire2.exceptions import SeleniumWireException
+from seleniumwire2.options import ProxyConfig, SeleniumWireOptions
 from tests import utils as testutils
 from tests.httpbin_server import Httpbin
 
@@ -362,7 +363,7 @@ def test_no_auto_config_manual_proxy(driver_path, chrome_options, httpbin):
     Selenium Wire using a different IP/host than what Selenium Wire uses
     by default. E.g. A dynamic hostname for a container setup.
     """
-    capabilities = webdriver.DesiredCapabilities.CHROME.copy()
+    capabilities = DesiredCapabilities.CHROME.copy()
     capabilities["proxy"] = {
         "proxyType": "manual",
         "sslProxy": "{}:{}".format("localhost", 8088),
@@ -439,7 +440,7 @@ def test_har(driver_path, chrome_options, httpbin):
 
         har = json.loads(driver.har)
 
-        assert har["log"]["creator"]["comment"] == f"Selenium Wire version {seleniumwire.__version__}"
+        assert har["log"]["creator"]["comment"] == f"Selenium Wire version {seleniumwire2.__version__}"
         assert len(har["log"]["entries"]) == 1
         assert har["log"]["entries"][0]["request"]["url"] == f"{httpbin}/html"
         assert har["log"]["entries"][0]["response"]["status"] == 200

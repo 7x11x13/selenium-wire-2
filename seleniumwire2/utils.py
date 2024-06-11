@@ -6,7 +6,7 @@ from urllib.request import _parse_proxy as _urllib_parse_proxy  # type: ignore[a
 
 from mitmproxy.net import encoding as decoder
 
-from seleniumwire.options import ProxyConfig
+from seleniumwire2.options import ProxyConfig
 
 log = logging.getLogger(__name__)
 
