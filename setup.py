@@ -34,13 +34,7 @@ setup(
         "mitmproxy>=10.3.0",
         "selenium>=4.0.0",
     ],
-    extras_require={
-        "test": [
-            "httpbin",
-            "pytest",
-            "pytest-cov"
-        ]
-    }
+    extras_require={"test": ["httpbin", "pytest", "pytest-cov"]},
     keywords="selenium-wire",
     name="selenium-wire",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
