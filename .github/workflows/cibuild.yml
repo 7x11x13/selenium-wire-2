@@ -64,8 +64,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: 126
+          install-chromedriver: true
       - uses: actions/setup-python@v2
         with:
           python-version: '3.12'
       - run: pip install tox
       - run: tox -e e2e
+        env:
+          CHROMIUM_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}

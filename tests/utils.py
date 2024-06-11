@@ -1,10 +1,9 @@
 import os
-import shutil
 import subprocess
 from pathlib import Path
 
 
-def get_headless_chromium() -> str:
+def get_chromium_path() -> str:
     """Get the path to a headless chromium executable uncompressing the
     executable if required.
 
@@ -14,15 +13,7 @@ def get_headless_chromium() -> str:
     if os.name == "nt":
         return "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
 
-    bin_path = Path(__file__).parent / Path("end2end", "linux", "headless-chromium")
-
-    if not bin_path.exists():
-        zip_path = bin_path.with_suffix(".zip")
-        print(f"Unzipping {zip_path}")
-        shutil.unpack_archive(str(zip_path), bin_path.parent)
-        os.chmod(bin_path, 0o755)
-
-    return str(bin_path)
+    return os.getenv("CHROMIUM_PATH")
 
 
 class Proxy:

@@ -60,13 +60,13 @@ def create_httpproxy(port=8086, mode="http", auth=""):
 def driver_path():
     if os.name == "nt":
         return "chromedriver.exe"
-    return str(Path(__file__).parent / Path("linux", "chromedriver"))
+    return os.getenv("CHROMEDRIVER_PATH")
 
 
 @pytest.fixture
 def chrome_options():
     options = webdriver.ChromeOptions()
-    options.binary_location = testutils.get_headless_chromium()
+    options.binary_location = testutils.get_chromium_path()
     options.add_argument("--headless=new")
     return options
 
