@@ -598,6 +598,7 @@ In-Memory Storage
 Selenium Wire also supports storing requests and responses in memory only, which may be useful in certain situations - e.g. if you're running short lived Docker containers and don't want the overhead of disk persistence. You can enable in-memory storage by setting the ``request_storage`` option to ``memory``:
 
 .. code:: python
+
     from seleniumwire2 import SeleniumWireOptions
     options = SeleniumWireOptions(request_storage="memory")
     driver = webdriver.Chrome(seleniumwire_options=options)
@@ -605,6 +606,7 @@ Selenium Wire also supports storing requests and responses in memory only, which
 If you're concerned about the amount of memory that may be consumed, you can restrict the number of requests that are stored with the ``request_storage_max_size`` option:
 
 .. code:: python
+
     from seleniumwire2 import SeleniumWireOptions
     options = SeleniumWireOptions(
         request_storage="memory",
@@ -622,6 +624,7 @@ If the site you are accessing sits behind a proxy server you can tell Selenium W
 The configuration takes the following format:
 
 .. code:: python
+
     from seleniumwire2 import ProxyConfig, SeleniumWireOptions
     options = SeleniumWireOptions(
         upstream_proxy=ProxyConfig(
@@ -634,6 +637,7 @@ The configuration takes the following format:
 To use HTTP Basic Auth with your proxy, specify the username and password in the URL:
 
 .. code:: python
+
     from seleniumwire2 import ProxyConfig, SeleniumWireOptions
     options = SeleniumWireOptions(
         upstream_proxy=ProxyConfig(
