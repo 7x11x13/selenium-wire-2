@@ -4,3 +4,8 @@ History
 ------------------
 
 * First release on PyPI.
+
+0.2.0 (2024-06-13)
+------------------
+
+* Rename `request_storage_base_dir` to `storage_base_dir`

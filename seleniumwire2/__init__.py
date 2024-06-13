@@ -3,7 +3,7 @@
 """Top-level package for Selenium Wire."""
 
 __author__ = """7x11x13"""
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from mitmproxy.certs import Cert
 from mitmproxy.http import Headers

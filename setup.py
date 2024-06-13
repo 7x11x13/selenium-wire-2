@@ -42,6 +42,6 @@ setup(
     test_suite="tests.seleniumwire",
     tests_require=["pytest"],
     url="https://github.com/7x11x13/selenium-wire-2",
-    version="0.1.0",
+    version="0.2.0",
     zip_safe=False,
 )
