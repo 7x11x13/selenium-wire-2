@@ -5,23 +5,23 @@ Fork of Will Keeling's `Selenium Wire <https://github.com/wkeeling/selenium-wire
 
 Selenium Wire extends `Selenium's <https://www.selenium.dev/documentation/en/>`_ Python bindings to give you access to the underlying requests made by the browser. You author your code in the same way as you do with Selenium, but you get extra APIs for inspecting requests and responses and making changes to them on the fly.
 
-.. image:: https://github.com/wkeeling/selenium-wire/workflows/build/badge.svg
-        :target: https://github.com/wkeeling/selenium-wire/actions
+.. image:: https://github.com/7x11x13/selenium-wire-2/workflows/build/badge.svg
+        :target: https://github.com/7x11x13/selenium-wire-2/actions
 
-.. image:: https://codecov.io/gh/wkeeling/selenium-wire/branch/master/graph/badge.svg
-        :target: https://codecov.io/gh/wkeeling/selenium-wire
+.. image:: https://codecov.io/gh/7x11x13/selenium-wire-2/branch/master/graph/badge.svg
+        :target: https://codecov.io/gh/7x11x13/selenium-wire-2
 
-.. image:: https://img.shields.io/badge/python-3.7%2C%203.8%2C%203.9%2C%203.10-blue.svg
-        :target: https://pypi.python.org/pypi/selenium-wire
+.. image:: https://img.shields.io/badge/python-3.10%2C%203.11%2C%203.12-blue.svg
+        :target: https://pypi.python.org/pypi/selenium-wire-2
 
-.. image:: https://img.shields.io/pypi/v/selenium-wire.svg
-        :target: https://pypi.python.org/pypi/selenium-wire
+.. image:: https://img.shields.io/pypi/v/selenium-wire-2.svg
+        :target: https://pypi.python.org/pypi/selenium-wire-2
 
-.. image:: https://img.shields.io/pypi/l/selenium-wire.svg
-        :target: https://pypi.python.org/pypi/selenium-wire
+.. image:: https://img.shields.io/pypi/l/selenium-wire-2.svg
+        :target: https://pypi.python.org/pypi/selenium-wire-2
 
-.. image:: https://pepy.tech/badge/selenium-wire/month
-        :target: https://pepy.tech/project/selenium-wire
+.. image:: https://pepy.tech/badge/selenium-wire-2/month
+        :target: https://pepy.tech/project/selenium-wire-2
 
 Simple Example
 ~~~~~~~~~~~~~~
@@ -131,7 +131,7 @@ Install using pip:
 
 .. code:: bash
 
-    pip install selenium-wire
+    pip install selenium-wire-2
 
 If you get an error about not being able to build cryptography you may be running an old version of pip. Try upgrading pip with ``python -m pip install --upgrade pip`` and then re-run the above command.
 
@@ -727,7 +727,7 @@ A summary of all options that can be passed to Selenium Wire via the ``seleniumw
     The maximum number of requests to store when using in-memory storage. Unlimited by default. This option currently has no effect when using the default disk based storage.
 
 ``upstream_proxy``
-    The upstream `proxy server <https://github.com/7x11x13/selenium-wire#Upstream Proxies>`__ configuration if you're using a proxy.
+    The upstream `proxy server <https://github.com/7x11x13/selenium-wire-2#Upstream Proxies>`__ configuration if you're using a proxy.
 
 ``verify_ssl``
     Whether SSL certificates should be verified. ``False`` by default, which prevents errors with self-signed certificates.
