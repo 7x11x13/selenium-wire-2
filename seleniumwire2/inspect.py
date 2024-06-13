@@ -115,6 +115,10 @@ class InspectRequestsMixin:
     def include_urls(self, new_include_urls: list[str]):
         self.backend.include_urls = new_include_urls
 
+    @include_urls.deleter
+    def include_urls(self):
+        self.backend.include_urls = []
+
     @property
     def exclude_urls(self) -> list[str]:
         """The URL patterns used to scope request capture. Used
@@ -132,6 +136,10 @@ class InspectRequestsMixin:
     @exclude_urls.setter
     def exclude_urls(self, new_exclude_urls: list[str]):
         self.backend.exclude_urls = new_exclude_urls
+
+    @exclude_urls.deleter
+    def exclude_urls(self):
+        self.backend.exclude_urls = []
 
     @property
     def request_interceptor(self) -> Optional[Callable[[Request], None]]:

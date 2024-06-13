@@ -111,7 +111,7 @@ def teardown_function():
 
 def filter_chrome_requests(driver: webdriver.Chrome):
     del driver.requests
-    driver.exclude_urls = [r".*google\.com.*"]
+    driver.exclude_urls += [r".*google\.com.*"]
 
 
 def test_capture_requests(driver, httpbin):
