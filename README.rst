@@ -1,5 +1,5 @@
 Selenium Wire 2
-=============
+===============
 
 Fork of Will Keeling's `Selenium Wire <https://github.com/wkeeling/selenium-wire>`_
 
@@ -615,7 +615,7 @@ If you're concerned about the amount of memory that may be consumed, you can res
 When the max size is reached, older requests are discarded as newer requests arrive. Keep in mind that if you restrict the number of requests being stored, requests may have disappeared from storage by the time you come to retrieve them with ``driver.requests`` or ``driver.wait_for_request()`` etc.
 
 Upstream Proxies
-~~~~~~~
+~~~~~~~~~~~~~~~~
 
 If the site you are accessing sits behind a proxy server you can tell Selenium Wire about that proxy server in the options you pass to the webdriver.
 
@@ -649,7 +649,7 @@ If no upstream proxy config is supplied, seleniumwire uses the ``HTTP_PROXY`` an
     $ export HTTPS_PROXY="https://192.168.10.100:8888"
 
 SOCKS Upstream Proxy
------
+--------------------
 
 SOCKS upstream proxies are not supported. See https://github.com/mitmproxy/mitmproxy/issues/211
 
