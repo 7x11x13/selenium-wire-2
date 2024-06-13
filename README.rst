@@ -116,8 +116,6 @@ Table of Contents
 
   * `Switching Dynamically`_
 
-- `Bot Detection`_
-
 - `Certificates`_
 
 - `All Options`_
@@ -670,11 +668,13 @@ If you want to change the proxy settings for an existing driver instance, use th
 
     driver.get(...)  # Using some initial proxy
 
-    # Change the proxy
+    # Change the upstream proxy
     driver.set_upstream_proxy(ProxyConfig(https="https://user:pass@192.168.10.100:8888"))
 
     driver.get(...)  # These requests will use the new proxy
 
+    # Remove the upstream proxy
+    driver.remove_upstream_proxy()
 
 Certificates
 ~~~~~~~~~~~~
