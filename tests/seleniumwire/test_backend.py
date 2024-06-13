@@ -233,14 +233,6 @@ class BackendIntegrationTest(TestCase):
 
         self.assertEqual(b"helloworld", last_request.response.body)
 
-    def test_filters_out_proxy_connection_header(self):
-        self.make_request(f"{self.httpbin}/headers", headers={"Proxy-Connection": "test"})
-
-        last_request = self.backend.storage.load_last_request()
-
-        data = json.loads(last_request.response.body.decode("utf-8"))
-        self.assertNotIn("Proxy-Connection", data["headers"])
-
     def test_address(self):
         self.assertEqual("127.0.0.1", self.backend.address[0])
         self.assertIsInstance(self.backend.address[1], int)

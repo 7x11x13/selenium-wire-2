@@ -26,14 +26,14 @@ class InterceptRequestHandler:
 
     def requestheaders(self, flow: HTTPFlow):
         # Requests that are being captured are not streamed.
-        if self.in_scope(flow.request):
+        if self._should_capture(flow.request):
             flow.request.stream = False
 
     def request(self, flow: HTTPFlow):
         # Convert to one of our requests for handling
         request = self._create_request(flow)
 
-        if not self.in_scope(request):
+        if not self._should_capture(request):
             log.debug("Not capturing %s request: %s", request.method, request.url)
             return
 
@@ -65,15 +65,7 @@ class InterceptRequestHandler:
             # This response will be a mocked response. Capture it for completeness.
             self.proxy.storage.save_response(request.id, request.response)
 
-        # Could possibly use mitmproxy's 'anticomp' option instead of this
-        if self.proxy.options.disable_encoding:
-            flow.request.headers["Accept-Encoding"] = "identity"
-
-        # Remove legacy header if present
-        if "Proxy-Connection" in flow.request.headers:
-            del flow.request.headers["Proxy-Connection"]
-
-    def in_scope(self, request: MitmRequest):
+    def _should_capture(self, request: MitmRequest):
         if request.method in self.proxy.options.ignore_http_methods:
             return False
 
@@ -106,7 +98,7 @@ class InterceptRequestHandler:
 
     def responseheaders(self, flow: HTTPFlow):
         # Responses that are being captured are not streamed.
-        if self.in_scope(flow.request):
+        if self._should_capture(flow.request):
             assert flow.response is not None
             flow.response.stream = False
 

@@ -62,6 +62,7 @@ class MitmProxy:
             listen_host=options.host,
             listen_port=options.port,
             ssl_insecure=not options.verify_ssl,
+            anticomp=options.disable_encoding,
             **get_mitm_upstream_proxy_args(self.options.upstream_proxy),
             # mitm_options are passed through to mitmproxy
             **options.mitm_options,
