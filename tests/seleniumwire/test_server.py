@@ -13,7 +13,7 @@ class MitmProxyTest(TestCase):
     )
 
     def test_creates_storage(self):
-        proxy = MitmProxy(SeleniumWireOptions("somehost", 12345, request_storage_base_dir="/some/dir"))
+        proxy = MitmProxy(SeleniumWireOptions("somehost", 12345, storage_base_dir="/some/dir"))
 
         self.assertEqual(self.mock_storage.create.return_value, proxy.storage)
         self.mock_storage.create.assert_called_once_with(memory_only=False, base_dir="/some/dir", maxsize=None)
@@ -23,7 +23,7 @@ class MitmProxyTest(TestCase):
             SeleniumWireOptions(
                 "somehost",
                 12345,
-                request_storage_base_dir="/some/dir",
+                storage_base_dir="/some/dir",
                 request_storage="memory",
                 request_storage_max_size=10,
             )

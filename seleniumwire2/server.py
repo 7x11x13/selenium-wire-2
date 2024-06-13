@@ -147,7 +147,7 @@ class MitmProxy:
     def _get_storage_args(self):
         storage_args = {
             "memory_only": self.options.request_storage == "memory",
-            "base_dir": self.options.request_storage_base_dir,
+            "base_dir": self.options.storage_base_dir,
             "maxsize": self.options.request_storage_max_size,
         }
 

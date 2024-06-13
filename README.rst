@@ -84,6 +84,8 @@ Table of Contents
 
   * `OpenSSL`_
 
+  * `Certificates`_
+
 - `Creating the Webdriver`_
 
 - `Accessing Requests`_
@@ -115,8 +117,6 @@ Table of Contents
   * `SOCKS Upstream Proxy`_
 
   * `Switching Dynamically`_
-
-- `Certificates`_
 
 - `All Options`_
 
@@ -169,6 +169,13 @@ Selenium Wire requires OpenSSL for decrypting HTTPS requests. This is probably a
 **Windows**
 
 No installation is required.
+
+Certificates
+------------
+
+See https://docs.mitmproxy.org/stable/concepts-certificates/#the-mitmproxy-certificate-authority
+
+The CA certificate is stored in the directory specified by ``storage_base_dir``.
 
 Creating the Webdriver
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -581,12 +588,12 @@ Selenium Wire works by redirecting browser traffic through an internal proxy ser
 Request Storage
 ~~~~~~~~~~~~~~~
 
-Captured requests and responses are stored in the system temp folder by default (that's ``/tmp`` on Linux and usually ``C:\Users\<username>\AppData\Local\Temp`` on Windows) in a sub-folder called ``.seleniumwire``. To change where the ``.seleniumwire`` folder gets created you can use the ``request_storage_base_dir`` option:
+Captured requests and responses are stored in the home folder by default (that's ``~/`` on Linux/Mac and usually ``C:\Users\<username>`` on Windows) in a sub-folder called ``.seleniumwire``. To change where the ``.seleniumwire`` folder gets created you can use the ``storage_base_dir`` option:
 
 .. code:: python
 
     options = SeleniumWireOptions(
-        request_storage_base_dir="/my/storage/folder"  # .seleniumwire will get created here
+        storage_base_dir="/my/storage/folder"  # .seleniumwire will get created here
     )
     driver = webdriver.Chrome(seleniumwire_options=options)
 
@@ -676,13 +683,6 @@ If you want to change the proxy settings for an existing driver instance, use th
     # Remove the upstream proxy
     driver.remove_upstream_proxy()
 
-Certificates
-~~~~~~~~~~~~
-
-Selenium Wire uses it's own root certificate to decrypt HTTPS traffic. It is not normally necessary for the browser to trust this certificate because Selenium Wire tells the browser to add it as an exception. This will allow the browser to function normally, but it will display a "Not Secure" message (and/or unlocked padlock) in the address bar. If you wish to get rid of this message you can install the root certificate manually.
-
-TODO https://docs.mitmproxy.org/stable/concepts-certificates/#installing-the-mitmproxy-ca-certificate-manually but replace .mitmproxy with .seleniumwire
-
 All Options
 ~~~~~~~~~~~
 
@@ -724,11 +724,11 @@ A summary of all options that can be passed to Selenium Wire via the ``seleniumw
 ``request_storage``
     The type of storage to use. Selenium Wire defaults to disk based storage, but you can switch to in-memory storage by setting this option to ``memory``:
 
-``request_storage_base_dir``
-    The base location where Selenium Wire stores captured requests and responses when using its default disk based storage. This defaults to the system temp folder (that's ``/tmp`` on Linux and usually ``C:\Users\<username>\AppData\Local\Temp`` on Windows). A sub-folder called ``.seleniumwire`` will get created here to store the captured data.
-
 ``request_storage_max_size``
     The maximum number of requests to store when using in-memory storage. Unlimited by default. This option currently has no effect when using the default disk based storage.
+
+``storage_base_dir``
+    The base location where Selenium Wire stores captured requests and responses when using its default disk based storage. This defaults to the home folder (that's ``~/`` on Linux/Mac and usually ``C:\Users\<username>\`` on Windows). A sub-folder called ``.seleniumwire`` will get created here to store the captured data and mitmproxy certificates.
 
 ``upstream_proxy``
     The upstream `proxy server <https://github.com/7x11x13/selenium-wire-2#Upstream Proxies>`__ configuration if you're using a proxy.

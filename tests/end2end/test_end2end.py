@@ -463,7 +463,7 @@ def test_disable_capture(driver_path, chrome_options, httpbin):
 
 def test_in_memory_storage(driver_path, chrome_options, httpbin):
     sw_options = SeleniumWireOptions(
-        request_storage="memory", request_storage_base_dir=f"{tempfile.gettempdir()}/sw_memory", enable_har=True
+        request_storage="memory", storage_base_dir=f"{tempfile.gettempdir()}/sw_memory", enable_har=True
     )
 
     with create_driver(driver_path, chrome_options, sw_options) as driver:
