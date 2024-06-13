@@ -140,7 +140,6 @@ class Firefox(InspectRequestsMixin, DriverCommonMixin, _Firefox):
         kwargs["options"] = options
         self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-        self.backend.storage.clear_requests()
 
 
 class Chrome(InspectRequestsMixin, DriverCommonMixin, _Chrome):
@@ -152,7 +151,6 @@ class Chrome(InspectRequestsMixin, DriverCommonMixin, _Chrome):
         kwargs["options"] = options
         self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-        self.backend.storage.clear_requests()
 
 
 class Safari(InspectRequestsMixin, DriverCommonMixin, _Safari):
@@ -164,7 +162,6 @@ class Safari(InspectRequestsMixin, DriverCommonMixin, _Safari):
         kwargs["options"] = options
         self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-        self.backend.storage.clear_requests()
 
 
 class Edge(InspectRequestsMixin, DriverCommonMixin, _Edge):
@@ -176,7 +173,6 @@ class Edge(InspectRequestsMixin, DriverCommonMixin, _Edge):
         kwargs["options"] = options
         self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-        self.backend.storage.clear_requests()
 
 
 class Remote(InspectRequestsMixin, DriverCommonMixin, _Remote):
@@ -190,4 +186,3 @@ class Remote(InspectRequestsMixin, DriverCommonMixin, _Remote):
             raise ValueError("Remote driver must be initialized with 'options' kwarg")
         self._setup_backend(seleniumwire_options, options)
         super().__init__(*args, **kwargs)
-        self.backend.storage.clear_requests()

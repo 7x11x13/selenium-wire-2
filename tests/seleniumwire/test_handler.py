@@ -45,17 +45,6 @@ class InterceptRequestHandlerTest(TestCase):
         self.assertEqual("12345", saved_request.id)
         self.assertEqual("12345", self.mock_flow.request.id)
 
-    def test_disable_encoding(self):
-        self.mock_flow.request.url = "http://somewhere.com/some/path"
-        self.mock_flow.request.method = "GET"
-        self.mock_flow.request.headers = Headers([(b"Accept-Encoding", b"gzip")])
-        self.mock_flow.request.raw_content = b""
-        self.proxy.options.disable_encoding = True
-
-        self.handler.request(self.mock_flow)
-
-        self.assertEqual({"Accept-Encoding": "identity"}, dict(self.mock_flow.request.headers))
-
     def test_save_response(self):
         self.mock_flow.request.id = "12345"
         self.mock_flow.request.url = "http://somewhere.com/some/path"

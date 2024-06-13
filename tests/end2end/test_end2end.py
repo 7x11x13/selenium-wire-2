@@ -21,6 +21,7 @@ import seleniumwire2
 from seleniumwire2 import webdriver
 from seleniumwire2.exceptions import SeleniumWireException
 from seleniumwire2.options import ProxyConfig, SeleniumWireOptions
+from seleniumwire2.request import Request
 from tests import utils as testutils
 from tests.httpbin_server import Httpbin
 
@@ -85,6 +86,7 @@ def create_driver(
 ):
     service = Service(executable_path=driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options, seleniumwire_options=seleniumwire_options)
+    filter_chrome_requests(driver)
     try:
         yield driver
     finally:
@@ -107,11 +109,15 @@ def teardown_function():
     shutil.rmtree(Path(__file__).parent / "chrome_tmp", ignore_errors=True)
 
 
+def filter_chrome_requests(driver: webdriver.Chrome):
+    del driver.requests
+    driver.exclude_urls = [r".*google\.com.*"]
+
+
 def test_capture_requests(driver, httpbin):
     driver.get(f"{httpbin}/html")
 
     assert driver.requests
-    print([r.response for r in driver.requests])
     assert all(r.response is not None for r in driver.requests)
     del driver.requests
     assert not driver.requests
@@ -119,7 +125,7 @@ def test_capture_requests(driver, httpbin):
 
 def test_last_request(driver, httpbin):
 
-    driver.exclude_urls = [".*/favicon.ico"]
+    driver.exclude_urls += [".*/favicon.ico"]
 
     driver.get(f"{httpbin}/html")
     driver.get(f"{httpbin}/anything")
@@ -157,7 +163,7 @@ def test_include_urls(driver, httpbin):
 
 
 def test_exclude_urls(driver, httpbin):
-    driver.exclude_urls = [".*/anything/.*"]
+    driver.exclude_urls += [".*/anything/.*"]
 
     driver.get(f"{httpbin}/anything/hello/world")
     driver.get(f"{httpbin}/html")
@@ -462,7 +468,7 @@ def test_in_memory_storage(driver_path, chrome_options, httpbin):
 
     with create_driver(driver_path, chrome_options, sw_options) as driver:
 
-        driver.exclude_urls = [".*/favicon.ico"]
+        driver.exclude_urls += [".*/favicon.ico"]
 
         driver.get(f"{httpbin}/html")
         driver.get(f"{httpbin}/anything")

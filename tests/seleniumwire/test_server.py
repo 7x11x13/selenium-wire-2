@@ -9,11 +9,7 @@ from seleniumwire2.server import MitmProxy
 class MitmProxyTest(TestCase):
 
     base_options_update = functools.partial(
-        call,
-        confdir="/some/dir",
-        listen_host="somehost",
-        listen_port=12345,
-        ssl_insecure=True,
+        call, confdir="/some/dir", listen_host="somehost", listen_port=12345, ssl_insecure=True, anticomp=False
     )
 
     def test_creates_storage(self):
