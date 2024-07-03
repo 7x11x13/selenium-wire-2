@@ -9,3 +9,8 @@ History
 ------------------
 
 * Rename `request_storage_base_dir` to `storage_base_dir`
+
+0.2.1 (2024-07-03)
+------------------
+
+* Add `py.typed`
